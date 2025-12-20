@@ -46,6 +46,23 @@ export default function Home() {
     <main>
       <h1>Real World</h1>
       <p><em>All actions here are irreversible.</em></p>
+<details style={{ marginBottom: 16 }}>
+  <summary style={{ cursor: "pointer" }}>World Rules</summary>
+  <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+    <p><strong>What is this?</strong><br />
+      This is a real world. Everything you leave here is recorded — and irreversible.
+    </p>
+
+    <p><strong>Three Laws</strong></p>
+    <ol>
+      <li><strong>No take-backs:</strong> Once submitted, it cannot be edited or deleted.</li>
+      <li><strong>Only actions matter:</strong> Not who you are — what you do.</li>
+      <li><strong>Impact is existence:</strong> The only thing that matters is whether you truly changed this world.</li>
+    </ol>
+
+    <p><strong>If you hesitate — don’t write yet.</strong></p>
+  </div>
+</details>
 
       <section>
         {records.map((r) => (
