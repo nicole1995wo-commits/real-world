@@ -36,8 +36,13 @@ type RecordItem = {
 };
 
 // --------------------
-// Daily submit limit (per browser)
+// Anti-spam (client-side)
 // --------------------
+const MIN_CHARS = 10;
+const MIN_INTERVAL_SECONDS = 60; // 最短间隔：60秒（同浏览器）
+const COOLDOWN_SECONDS = 5;
+
+// daily once
 function canSubmitToday(day: number) {
   try {
     const v = localStorage.getItem("realworld:last_submit_day");
@@ -47,10 +52,47 @@ function canSubmitToday(day: number) {
     return true;
   }
 }
-
 function markSubmittedToday(day: number) {
   try {
     localStorage.setItem("realworld:last_submit_day", String(day));
+  } catch {}
+}
+
+// min interval
+function canSubmitByInterval() {
+  try {
+    const v = localStorage.getItem("realworld:last_submit_ts");
+    if (!v) return true;
+    const last = Number(v);
+    return Date.now() - last >= MIN_INTERVAL_SECONDS * 1000;
+  } catch {
+    return true;
+  }
+}
+function markSubmitTimestamp() {
+  try {
+    localStorage.setItem("realworld:last_submit_ts", String(Date.now()));
+  } catch {}
+}
+
+// duplicate content guard (same day)
+function normalizeText(s: string) {
+  return s.trim().replace(/\s+/g, " ").toLowerCase();
+}
+function isDuplicateToday(day: number, content: string) {
+  try {
+    const key = `realworld:dup:${day}`;
+    const v = localStorage.getItem(key);
+    if (!v) return false;
+    return v === normalizeText(content);
+  } catch {
+    return false;
+  }
+}
+function markDuplicateToday(day: number, content: string) {
+  try {
+    const key = `realworld:dup:${day}`;
+    localStorage.setItem(key, normalizeText(content));
   } catch {}
 }
 
@@ -62,7 +104,6 @@ function getQueryParam(name: string) {
   const url = new URL(window.location.href);
   return url.searchParams.get(name);
 }
-
 function setQueryParams(params: Record<string, string | null>) {
   const url = new URL(window.location.href);
   for (const [k, v] of Object.entries(params)) {
@@ -71,21 +112,18 @@ function setQueryParams(params: Record<string, string | null>) {
   }
   window.history.replaceState({}, "", url.toString());
 }
-
 async function copyToClipboard(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
 // --------------------
-// Theme (dark mode) — follow system + manual toggle + persist
+// Theme (simple)
 // --------------------
 type Theme = "system" | "light" | "dark";
-
 function getSystemDark() {
   if (typeof window === "undefined") return false;
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
-
 function loadTheme(): Theme {
   try {
     return (localStorage.getItem("realworld:theme") as Theme) || "system";
@@ -93,7 +131,6 @@ function loadTheme(): Theme {
     return "system";
   }
 }
-
 function saveTheme(t: Theme) {
   try {
     localStorage.setItem("realworld:theme", t);
@@ -106,7 +143,6 @@ function saveTheme(t: Theme) {
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
 function highlight(text: string, query: string) {
   const q = query.trim();
   if (!q) return <>{text}</>;
@@ -128,7 +164,7 @@ function highlight(text: string, query: string) {
 }
 
 // --------------------
-// UI helpers
+// UI styles
 // --------------------
 function styles(dark: boolean) {
   const bg = dark ? "#0b0d10" : "#ffffff";
@@ -230,33 +266,29 @@ export default function Home() {
   // submit
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
+  const [honeypot, setHoneypot] = useState(""); // hidden spam trap
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [allowedToday, setAllowedToday] = useState(true);
 
+  // cooldown
+  const [cooldownEnabled, setCooldownEnabled] = useState(true);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+  const cooldownTimer = useRef<number | null>(null);
+
   // controls
   const [search, setSearch] = useState("");
-  const [dayFilter, setDayFilter] = useState<string>(""); // "" means all
+  const [dayFilter, setDayFilter] = useState<string>("");
   const [onlyToday, setOnlyToday] = useState(false);
   const [onlyGenesis, setOnlyGenesis] = useState(false);
   const [sortNewest, setSortNewest] = useState(true);
   const [authorFilter, setAuthorFilter] = useState("");
+  const [daysToRender, setDaysToRender] = useState(14);
 
-  // performance: render only recent N days by default
-  const [daysToRender, setDaysToRender] = useState(7);
-
-  // cooldown + minimum length
-  const [cooldownEnabled, setCooldownEnabled] = useState(true);
-  const [cooldownLeft, setCooldownLeft] = useState(0);
-  const cooldownTimer = useRef<number | null>(null);
-  const minChars = 10;
-
-  // share hint
+  // share
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
-  // init
   useEffect(() => {
-    // theme init
     const t = loadTheme();
     setTheme(t);
     setSystemDark(getSystemDark());
@@ -269,7 +301,6 @@ export default function Home() {
     }
   }, []);
 
-  // init query + data
   useEffect(() => {
     const q = getQueryParam("q") || "";
     const d = getQueryParam("day") || "";
@@ -300,7 +331,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sync query
   useEffect(() => {
     setQueryParams({
       q: search || null,
@@ -309,12 +339,11 @@ export default function Home() {
       genesis: onlyGenesis ? "1" : null,
       sort: sortNewest ? "new" : "old",
       author: authorFilter || null,
-      theme: theme !== "system" ? theme : null, // don't clutter link with system
+      theme: theme !== "system" ? theme : null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, dayFilter, onlyToday, onlyGenesis, sortNewest, authorFilter, theme]);
 
-  // daily allowance
   useEffect(() => {
     setAllowedToday(canSubmitToday(todayDay));
   }, [todayDay]);
@@ -357,13 +386,19 @@ export default function Home() {
     setSubmitError(null);
     setShareMsg(null);
 
+    // honeypot: if filled, likely bot
+    if (honeypot.trim()) {
+      setSubmitError("Submission blocked.");
+      return;
+    }
+
     if (!author.trim() || !content.trim()) {
       setSubmitError("Please fill in your name and a record.");
       return;
     }
 
-    if (content.trim().length < minChars) {
-      setSubmitError(`Record is too short. Minimum ${minChars} characters.`);
+    if (content.trim().length < MIN_CHARS) {
+      setSubmitError(`Record is too short. Minimum ${MIN_CHARS} characters.`);
       return;
     }
 
@@ -372,12 +407,22 @@ export default function Home() {
       return;
     }
 
+    if (!canSubmitByInterval()) {
+      setSubmitError(`Please wait at least ${MIN_INTERVAL_SECONDS}s between submissions (this browser).`);
+      return;
+    }
+
+    if (isDuplicateToday(todayDay, content)) {
+      setSubmitError("Duplicate detected (same day, same content). Please write something new.");
+      return;
+    }
+
     if (cooldownEnabled && cooldownLeft > 0) {
       setSubmitError(`Please wait ${cooldownLeft}s before submitting (cooldown).`);
       return;
     }
 
-    if (cooldownEnabled) startCooldown(5);
+    if (cooldownEnabled) startCooldown(COOLDOWN_SECONDS);
 
     setSubmitting(true);
 
@@ -396,6 +441,8 @@ export default function Home() {
     }
 
     markSubmittedToday(todayDay);
+    markSubmitTimestamp();
+    markDuplicateToday(todayDay, content);
     setAllowedToday(false);
 
     setContent("");
@@ -409,7 +456,7 @@ export default function Home() {
     setOnlyGenesis(false);
     setSortNewest(true);
     setAuthorFilter("");
-    setDaysToRender(7);
+    setDaysToRender(14);
   }
 
   async function copyShareLink() {
@@ -424,13 +471,9 @@ export default function Home() {
     saveTheme(t);
   }
 
-  // --------------------
-  // Derived data
-  // --------------------
   const filteredRecords = useMemo(() => {
     let list = [...records];
 
-    // sort base
     list.sort((a, b) => {
       const ta = new Date(a.created_at).getTime();
       const tb = new Date(b.created_at).getTime();
@@ -463,21 +506,7 @@ export default function Home() {
     return list;
   }, [records, sortNewest, search, authorFilter, onlyGenesis, onlyToday, dayFilter, todayDay]);
 
-  const stats = useMemo(() => {
-    const total = records.length;
-    const todayCount = records.filter((r) => r.day === todayDay).length;
-    const authors = new Set(records.map((r) => r.author.trim()).filter(Boolean)).size;
-
-    // last 7 days counts (including today)
-    const last7: { day: number; count: number }[] = [];
-    for (let d = Math.max(0, todayDay - 6); d <= todayDay; d++) {
-      last7.push({ day: d, count: records.filter((r) => r.day === d).length });
-    }
-
-    return { total, todayCount, authors, last7 };
-  }, [records, todayDay]);
-
-  const { recordsByDay, sortedDaysAll, sortedDaysRendered } = useMemo(() => {
+  const { recordsByDay, sortedDaysAll, sortedDaysRendered, authorsCount } = useMemo(() => {
     const map: Record<number, RecordItem[]> = {};
     for (const r of filteredRecords) {
       map[r.day] = map[r.day] || [];
@@ -485,23 +514,21 @@ export default function Home() {
     }
 
     const allDays = Object.keys(map).map(Number);
-
-    // Day 0 always first, others newest first
     const nonZero = allDays.filter((d) => d !== 0).sort((a, b) => b - a);
-    const sortedAll = (map[0] ? [0] : []).concat(nonZero);
+    const allSorted = (map[0] ? [0] : []).concat(nonZero);
 
-    // Render: Day 0 + recent N days (newest first among non-zero)
-    const renderNonZero = nonZero.slice(0, Math.max(0, daysToRender));
-    const rendered = (map[0] ? [0] : []).concat(renderNonZero);
+    const renderedNonZero = nonZero.slice(0, Math.max(0, daysToRender));
+    const rendered = (map[0] ? [0] : []).concat(renderedNonZero);
 
-    return { recordsByDay: map, sortedDaysAll: sortedAll, sortedDaysRendered: rendered };
+    const authors = new Set(filteredRecords.map((r) => r.author.trim()).filter(Boolean)).size;
+
+    return { recordsByDay: map, sortedDaysAll: allSorted, sortedDaysRendered: rendered, authorsCount: authors };
   }, [filteredRecords, daysToRender]);
 
   const hasMoreDays = sortedDaysRendered.length < sortedDaysAll.length;
 
   return (
     <main style={S.page}>
-      {/* Header */}
       <header style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div>
@@ -512,7 +539,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Theme switch */}
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={S.small}>Theme</span>
             <select
@@ -532,133 +558,63 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Stats */}
       <section style={{ ...S.card, marginBottom: 12 }}>
         <div style={S.row}>
           <div>
-            <div style={S.label}>Total records</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.total}</div>
+            <div style={S.label}>Records (current view)</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{filteredRecords.length}</div>
           </div>
 
           <div>
-            <div style={S.label}>Today</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.todayCount}</div>
+            <div style={S.label}>Authors (current view)</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{authorsCount}</div>
           </div>
 
           <div>
-            <div style={S.label}>Authors</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.authors}</div>
+            <div style={S.label}>Write permission</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>
+              {allowedToday ? "Available" : "Used today"}
+            </div>
           </div>
 
           <div style={{ marginLeft: "auto" }}>
-            <button onClick={copyShareLink} style={S.button}>
-              Copy share link
-            </button>
+            <button onClick={copyShareLink} style={S.button}>Copy share link</button>
             {shareMsg && <div style={{ marginTop: 6, ...S.small }}>{shareMsg}</div>}
-          </div>
-        </div>
-
-        {/* last 7 days simple trend */}
-        <div style={{ marginTop: 12, ...S.small }}>
-          <div style={{ marginBottom: 6 }}>Last 7 days</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {stats.last7.map((x) => (
-              <span key={x.day} style={S.pill}>
-                Day {x.day}: {x.count}
-              </span>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* Controls */}
       <section style={{ ...S.card, marginBottom: 12 }}>
         <div style={S.row}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={S.label}>Search (content / author)</div>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search…"
-              style={S.input}
-            />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" style={S.input} />
           </div>
 
           <div style={{ width: 140 }}>
             <div style={S.label}>Filter Day</div>
-            <input
-              value={dayFilter}
-              onChange={(e) => setDayFilter(e.target.value)}
-              placeholder="e.g. 0, 1, 12"
-              style={S.input}
-            />
+            <input value={dayFilter} onChange={(e) => setDayFilter(e.target.value)} placeholder="e.g. 0, 1, 12" style={S.input} />
           </div>
 
           <div style={{ width: 180 }}>
             <div style={S.label}>Filter Author</div>
-            <input
-              value={authorFilter}
-              onChange={(e) => setAuthorFilter(e.target.value)}
-              placeholder="exact author name"
-              style={S.input}
-            />
+            <input value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)} placeholder="exact author name" style={S.input} />
           </div>
 
           <div style={{ minWidth: 220 }}>
             <div style={S.label}>Quick</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-              <button
-                onClick={() => setOnlyToday((v) => !v)}
-                style={{
-                  ...S.button,
-                  background: onlyToday ? (dark ? "#e9eef5" : "#111418") : undefined,
-                  color: onlyToday ? (dark ? "#0b0d10" : "white") : undefined,
-                }}
-              >
-                Today
-              </button>
-
-              <button
-                onClick={() => setOnlyGenesis((v) => !v)}
-                style={{
-                  ...S.button,
-                  background: onlyGenesis ? (dark ? "#e9eef5" : "#111418") : undefined,
-                  color: onlyGenesis ? (dark ? "#0b0d10" : "white") : undefined,
-                }}
-              >
-                Genesis
-              </button>
-
-              <button onClick={resetFilters} style={S.button}>
-                Reset
-              </button>
+              <button onClick={() => setOnlyToday((v) => !v)} style={S.button}>Today</button>
+              <button onClick={() => setOnlyGenesis((v) => !v)} style={S.button}>Genesis</button>
+              <button onClick={resetFilters} style={S.button}>Reset</button>
             </div>
           </div>
 
           <div style={{ minWidth: 180 }}>
             <div style={S.label}>Sort</div>
             <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
-              <button
-                onClick={() => setSortNewest(true)}
-                style={{
-                  ...S.button,
-                  background: sortNewest ? (dark ? "#e9eef5" : "#111418") : undefined,
-                  color: sortNewest ? (dark ? "#0b0d10" : "white") : undefined,
-                }}
-              >
-                Newest
-              </button>
-
-              <button
-                onClick={() => setSortNewest(false)}
-                style={{
-                  ...S.button,
-                  background: !sortNewest ? (dark ? "#e9eef5" : "#111418") : undefined,
-                  color: !sortNewest ? (dark ? "#0b0d10" : "white") : undefined,
-                }}
-              >
-                Oldest
-              </button>
+              <button onClick={() => setSortNewest(true)} style={S.button}>Newest</button>
+              <button onClick={() => setSortNewest(false)} style={S.button}>Oldest</button>
             </div>
           </div>
         </div>
@@ -667,43 +623,30 @@ export default function Home() {
           <details>
             <summary style={{ cursor: "pointer" }}>World Rules</summary>
             <div style={{ marginTop: 10, lineHeight: 1.6 }}>
-              <p>
-                <strong>What is this?</strong>
-                <br />
-                This is a real world. Everything you leave here is recorded — and irreversible.
-              </p>
-
+              <p><strong>What is this?</strong><br />This is a real world. Everything you leave here is recorded — and irreversible.</p>
               <p><strong>Three Laws</strong></p>
               <ol>
                 <li><strong>No take-backs:</strong> Once submitted, it cannot be edited or deleted.</li>
                 <li><strong>Only actions matter:</strong> Not who you are — what you do.</li>
                 <li><strong>Impact is existence:</strong> The only thing that matters is whether you truly changed this world.</li>
               </ol>
-
               <p><strong>If you hesitate — don’t write yet.</strong></p>
             </div>
           </details>
         </div>
       </section>
 
-      {/* Timeline */}
       <section style={{ ...S.card, marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
           <h2 style={{ margin: 0 }}>Timeline</h2>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={S.small}>Render days</span>
-            <select
-              value={String(daysToRender)}
-              onChange={(e) => setDaysToRender(Number(e.target.value))}
-              style={{ ...S.input, width: 120 }}
-            >
-              <option value="3">3 days</option>
+            <select value={String(daysToRender)} onChange={(e) => setDaysToRender(Number(e.target.value))} style={{ ...S.input, width: 120 }}>
               <option value="7">7 days</option>
               <option value="14">14 days</option>
               <option value="30">30 days</option>
               <option value="9999">All</option>
             </select>
-
             <button onClick={fetchRecords} style={S.button} disabled={loadingRecords}>
               {loadingRecords ? "Refreshing..." : "Refresh"}
             </button>
@@ -711,18 +654,15 @@ export default function Home() {
         </div>
 
         <div style={{ marginTop: 8, ...S.small }}>
-          {sortedDaysRendered.length === 0
-            ? "No records match your filters."
-            : "Day 0 stays on top. Other days are newest-first."}
+          Day 0 stays on top. Other days are newest-first.
+          {hasMoreDays && " More days exist but are not rendered. Increase “Render days” to see more."}
         </div>
 
         <div style={{ marginTop: 14 }}>
           {sortedDaysRendered.map((day) => (
             <div key={day} style={{ marginBottom: 22 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                <h3 style={{ margin: 0 }}>
-                  {day === 0 ? "Day 0 (Genesis)" : `Day ${day}`}
-                </h3>
+                <h3 style={{ margin: 0 }}>{day === 0 ? "Day 0 (Genesis)" : `Day ${day}`}</h3>
                 <span style={S.small}>{getWorldMood(day)}</span>
                 {day === todayDay && <span style={S.pill}>Today</span>}
               </div>
@@ -730,17 +670,10 @@ export default function Home() {
               <div style={{ marginTop: 10 }}>
                 {recordsByDay[day].map((r) => (
                   <div key={r.id} style={{ marginBottom: 12 }}>
-                    <div style={{ whiteSpace: "pre-wrap" }}>
-                      {highlight(r.content, search)}
-                    </div>
-
+                    <div style={{ whiteSpace: "pre-wrap" }}>{highlight(r.content, search)}</div>
                     <small style={{ opacity: 0.85 }}>
                       —{" "}
-                      <button
-                        style={S.linkBtn}
-                        onClick={() => setAuthorFilter(r.author)}
-                        title="Filter by this author"
-                      >
+                      <button style={S.linkBtn} onClick={() => setAuthorFilter(r.author)} title="Filter by this author">
                         {highlight(r.author, search)}
                       </button>
                       {" · "}
@@ -751,51 +684,43 @@ export default function Home() {
               </div>
             </div>
           ))}
-
-          {hasMoreDays && (
-            <div style={{ marginTop: 8, ...S.small }}>
-              More days exist but are not rendered. Increase “Render days” to see more.
-            </div>
-          )}
         </div>
       </section>
 
       <hr style={S.divider} />
 
-      {/* Submit */}
       <section style={S.card}>
         <h2 style={{ marginTop: 0 }}>Leave a record</h2>
 
         <div style={{ marginBottom: 8, opacity: 0.88 }}>
           {allowedToday
-            ? `Write something you would accept being seen years from now. (min ${minChars} chars)`
+            ? `Write something you would accept being seen years from now. (min ${MIN_CHARS} chars)`
             : "You have already submitted a record today (in this browser). Come back tomorrow."}
         </div>
+
+        {/* honeypot - hidden */}
+        <input
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          style={{ display: "none" }}
+          tabIndex={-1}
+          autoComplete="off"
+        />
 
         <div style={S.row}>
           <div style={{ minWidth: 240, flex: 1 }}>
             <div style={S.label}>Your name</div>
-            <input
-              placeholder="Your name"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              style={S.input}
-            />
+            <input placeholder="Your name" value={author} onChange={(e) => setAuthor(e.target.value)} style={S.input} />
           </div>
 
           <div style={{ minWidth: 260 }}>
             <div style={S.label}>Safety</div>
             <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={cooldownEnabled}
-                onChange={(e) => setCooldownEnabled(e.target.checked)}
-              />
-              Enable 5s cooldown (anti-impulse)
+              <input type="checkbox" checked={cooldownEnabled} onChange={(e) => setCooldownEnabled(e.target.checked)} />
+              Enable {COOLDOWN_SECONDS}s cooldown (anti-impulse)
             </label>
-            {cooldownEnabled && cooldownLeft > 0 && (
-              <div style={{ marginTop: 6, ...S.small }}>Cooldown: {cooldownLeft}s</div>
-            )}
+            {cooldownEnabled && cooldownLeft > 0 && <div style={{ marginTop: 6, ...S.small }}>Cooldown: {cooldownLeft}s</div>}
+            <div style={{ marginTop: 6, ...S.small }}>Min interval: {MIN_INTERVAL_SECONDS}s (this browser)</div>
           </div>
         </div>
 
@@ -809,18 +734,10 @@ export default function Home() {
           />
         </div>
 
-        {submitError && (
-          <div style={{ marginTop: 10, color: "crimson" }}>
-            {submitError}
-          </div>
-        )}
+        {submitError && <div style={{ marginTop: 10, color: "crimson" }}>{submitError}</div>}
 
         <div style={{ marginTop: 12 }}>
-          <button
-            onClick={submitRecord}
-            disabled={submitting || !allowedToday}
-            style={submitting || !allowedToday ? S.button : S.buttonPrimary}
-          >
+          <button onClick={submitRecord} disabled={submitting || !allowedToday} style={submitting || !allowedToday ? S.button : S.buttonPrimary}>
             {submitting ? "Submitting..." : "Submit (irreversible)"}
           </button>
         </div>
