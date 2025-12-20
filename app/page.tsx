@@ -56,12 +56,9 @@ export default function Home() {
   return (
     <main>
       <h1>Real World</h1>
-      <p>
-        <em>All actions here are irreversible.</em>
-      </p>
-      <p>
-        <strong>Today:</strong> Day {todayDay}
-      </p>
+<p><strong>Today:</strong> Day {todayDay}</p>
+<p><em>All actions here are irreversible.</em></p>
+
 
       <details style={{ marginBottom: 16 }}>
         <summary style={{ cursor: "pointer" }}>World Rules</summary>
