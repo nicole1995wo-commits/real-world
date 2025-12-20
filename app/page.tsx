@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+// World start (Day 0). You can change this later.
+const WORLD_START = new Date("2025-12-20T00:00:00Z");
+
+function getWorldDay(now = new Date()) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diff = now.getTime() - WORLD_START.getTime();
+  return Math.max(0, Math.floor(diff / msPerDay));
+}
+
 type RecordItem = {
   id: string;
   content: string;
@@ -12,6 +21,8 @@ type RecordItem = {
 };
 
 export default function Home() {
+  const todayDay = getWorldDay();
+
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
@@ -35,7 +46,7 @@ export default function Home() {
     await supabase.from("records").insert({
       content,
       author,
-      day: 0,
+      day: todayDay,
     });
 
     setContent("");
@@ -45,32 +56,48 @@ export default function Home() {
   return (
     <main>
       <h1>Real World</h1>
-      <p><em>All actions here are irreversible.</em></p>
-<details style={{ marginBottom: 16 }}>
-  <summary style={{ cursor: "pointer" }}>World Rules</summary>
-  <div style={{ marginTop: 8, lineHeight: 1.6 }}>
-    <p><strong>What is this?</strong><br />
-      This is a real world. Everything you leave here is recorded — and irreversible.
-    </p>
+      <p>
+        <em>All actions here are irreversible.</em>
+      </p>
+      <p>
+        <strong>Today:</strong> Day {todayDay}
+      </p>
 
-    <p><strong>Three Laws</strong></p>
-    <ol>
-      <li><strong>No take-backs:</strong> Once submitted, it cannot be edited or deleted.</li>
-      <li><strong>Only actions matter:</strong> Not who you are — what you do.</li>
-      <li><strong>Impact is existence:</strong> The only thing that matters is whether you truly changed this world.</li>
-    </ol>
+      <details style={{ marginBottom: 16 }}>
+        <summary style={{ cursor: "pointer" }}>World Rules</summary>
+        <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+          <p>
+            <strong>What is this?</strong>
+            <br />
+            This is a real world. Everything you leave here is recorded — and irreversible.
+          </p>
 
-    <p><strong>If you hesitate — don’t write yet.</strong></p>
-  </div>
-</details>
+          <p>
+            <strong>Three Laws</strong>
+          </p>
+          <ol>
+            <li>
+              <strong>No take-backs:</strong> Once submitted, it cannot be edited or deleted.
+            </li>
+            <li>
+              <strong>Only actions matter:</strong> Not who you are — what you do.
+            </li>
+            <li>
+              <strong>Impact is existence:</strong> The only thing that matters is whether you truly changed this world.
+            </li>
+          </ol>
+
+          <p>
+            <strong>If you hesitate — don’t write yet.</strong>
+          </p>
+        </div>
+      </details>
 
       <section>
         {records.map((r) => (
           <div key={r.id} style={{ marginBottom: 16 }}>
             <div>{r.content}</div>
-            <small>
-              — {r.author}, Day {r.day}
-            </small>
+            <small>— {r.author}, Day {r.day}</small>
           </div>
         ))}
       </section>
