@@ -18,7 +18,6 @@ function formatDateUTC(d: Date) {
   return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
-// A1.4: World "mood" per day (simple rule-based)
 function getWorldMood(day: number) {
   if (day === 0) return "Genesis — the first irreversible mark.";
   if (day === 1) return "Echo — the world begins to respond.";
@@ -37,12 +36,11 @@ type RecordItem = {
 };
 
 // --------------------
-// One record per day (per browser)
+// Daily submit limit (per browser)
 // --------------------
 function canSubmitToday(day: number) {
   try {
-    const key = `realworld:last_submit_day`;
-    const v = localStorage.getItem(key);
+    const v = localStorage.getItem("realworld:last_submit_day");
     if (!v) return true;
     return Number(v) !== day;
   } catch {
@@ -52,7 +50,7 @@ function canSubmitToday(day: number) {
 
 function markSubmittedToday(day: number) {
   try {
-    localStorage.setItem(`realworld:last_submit_day`, String(day));
+    localStorage.setItem("realworld:last_submit_day", String(day));
   } catch {}
 }
 
@@ -74,117 +72,262 @@ function setQueryParams(params: Record<string, string | null>) {
   window.history.replaceState({}, "", url.toString());
 }
 
-function copyToClipboard(text: string) {
-  return navigator.clipboard.writeText(text);
+async function copyToClipboard(text: string) {
+  await navigator.clipboard.writeText(text);
+}
+
+// --------------------
+// Theme (dark mode) — follow system + manual toggle + persist
+// --------------------
+type Theme = "system" | "light" | "dark";
+
+function getSystemDark() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function loadTheme(): Theme {
+  try {
+    return (localStorage.getItem("realworld:theme") as Theme) || "system";
+  } catch {
+    return "system";
+  }
+}
+
+function saveTheme(t: Theme) {
+  try {
+    localStorage.setItem("realworld:theme", t);
+  } catch {}
+}
+
+// --------------------
+// Search highlight
+// --------------------
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlight(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const re = new RegExp(`(${escapeRegExp(q)})`, "ig");
+  const parts = text.split(re);
+  return (
+    <>
+      {parts.map((p, i) =>
+        re.test(p) ? (
+          <mark key={i} style={{ padding: "0 2px", borderRadius: 4 }}>
+            {p}
+          </mark>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
 }
 
 // --------------------
 // UI helpers
 // --------------------
-const ui = {
-  card: {
-    border: "1px solid rgba(0,0,0,0.12)",
-    borderRadius: 12,
-    padding: 16,
-    background: "white",
-  } as React.CSSProperties,
-  row: { display: "flex", gap: 12, flexWrap: "wrap" as const } as React.CSSProperties,
-  label: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
-  input: { padding: 8, borderRadius: 8, border: "1px solid rgba(0,0,0,0.2)" } as React.CSSProperties,
-  button: {
-    padding: "8px 12px",
-    borderRadius: 10,
-    border: "1px solid rgba(0,0,0,0.2)",
-    background: "white",
-    cursor: "pointer",
-  } as React.CSSProperties,
-  buttonPrimary: {
-    padding: "8px 12px",
-    borderRadius: 10,
-    border: "1px solid rgba(0,0,0,0.2)",
-    background: "black",
-    color: "white",
-    cursor: "pointer",
-  } as React.CSSProperties,
-  small: { fontSize: 12, opacity: 0.8 } as React.CSSProperties,
-};
+function styles(dark: boolean) {
+  const bg = dark ? "#0b0d10" : "#ffffff";
+  const fg = dark ? "#e9eef5" : "#111418";
+  const muted = dark ? "rgba(233,238,245,0.7)" : "rgba(17,20,24,0.65)";
+  const border = dark ? "rgba(233,238,245,0.16)" : "rgba(17,20,24,0.12)";
+  const cardBg = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)";
+  const inputBg = dark ? "rgba(255,255,255,0.06)" : "white";
+  const btnBg = dark ? "rgba(255,255,255,0.08)" : "white";
+  const btnPrimaryBg = dark ? "#e9eef5" : "#111418";
+  const btnPrimaryFg = dark ? "#0b0d10" : "white";
+
+  return {
+    page: {
+      maxWidth: 980,
+      margin: "40px auto",
+      padding: "0 16px 60px",
+      fontFamily: "system-ui",
+      background: bg,
+      color: fg,
+      minHeight: "100vh",
+      transition: "background 150ms ease, color 150ms ease",
+    } as React.CSSProperties,
+    card: {
+      border: `1px solid ${border}`,
+      borderRadius: 14,
+      padding: 16,
+      background: cardBg,
+    } as React.CSSProperties,
+    row: { display: "flex", gap: 12, flexWrap: "wrap" as const } as React.CSSProperties,
+    label: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
+    small: { fontSize: 12, opacity: 0.8 } as React.CSSProperties,
+    input: {
+      padding: 9,
+      borderRadius: 10,
+      border: `1px solid ${border}`,
+      background: inputBg,
+      color: fg,
+      outline: "none",
+      width: "100%",
+    } as React.CSSProperties,
+    button: {
+      padding: "9px 12px",
+      borderRadius: 12,
+      border: `1px solid ${border}`,
+      background: btnBg,
+      color: fg,
+      cursor: "pointer",
+    } as React.CSSProperties,
+    buttonPrimary: {
+      padding: "9px 12px",
+      borderRadius: 12,
+      border: `1px solid ${border}`,
+      background: btnPrimaryBg,
+      color: btnPrimaryFg,
+      cursor: "pointer",
+    } as React.CSSProperties,
+    divider: {
+      margin: "24px 0",
+      border: "none",
+      borderTop: `1px solid ${border}`,
+    } as React.CSSProperties,
+    pill: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "4px 10px",
+      borderRadius: 999,
+      border: `1px solid ${border}`,
+      background: cardBg,
+      fontSize: 12,
+      opacity: 0.95,
+    } as React.CSSProperties,
+    linkBtn: {
+      padding: 0,
+      border: "none",
+      background: "transparent",
+      color: fg,
+      cursor: "pointer",
+      textDecoration: "underline",
+      opacity: 0.9,
+    } as React.CSSProperties,
+    muted,
+    border,
+  };
+}
 
 export default function Home() {
   const todayDay = getWorldDay();
 
-  // Data
+  // theme
+  const [theme, setTheme] = useState<Theme>("system");
+  const [systemDark, setSystemDark] = useState(false);
+
+  // data
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
 
-  // Submit
+  // submit
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [allowedToday, setAllowedToday] = useState(true);
 
-  // Luxury: “cooldown” to reduce impulse
-  const [cooldownEnabled, setCooldownEnabled] = useState(true);
-  const [cooldownLeft, setCooldownLeft] = useState(0);
-  const cooldownTimer = useRef<number | null>(null);
-
-  // Controls
+  // controls
   const [search, setSearch] = useState("");
   const [dayFilter, setDayFilter] = useState<string>(""); // "" means all
   const [onlyToday, setOnlyToday] = useState(false);
   const [onlyGenesis, setOnlyGenesis] = useState(false);
   const [sortNewest, setSortNewest] = useState(true);
+  const [authorFilter, setAuthorFilter] = useState("");
 
-  // Share hint
+  // performance: render only recent N days by default
+  const [daysToRender, setDaysToRender] = useState(7);
+
+  // cooldown + minimum length
+  const [cooldownEnabled, setCooldownEnabled] = useState(true);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+  const cooldownTimer = useRef<number | null>(null);
+  const minChars = 10;
+
+  // share hint
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
+  // init
   useEffect(() => {
-    // initialize from URL query
+    // theme init
+    const t = loadTheme();
+    setTheme(t);
+    setSystemDark(getSystemDark());
+
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const onChange = () => setSystemDark(mq.matches);
+      mq.addEventListener?.("change", onChange);
+      return () => mq.removeEventListener?.("change", onChange);
+    }
+  }, []);
+
+  // init query + data
+  useEffect(() => {
     const q = getQueryParam("q") || "";
     const d = getQueryParam("day") || "";
     const t = getQueryParam("today") === "1";
     const g = getQueryParam("genesis") === "1";
     const s = getQueryParam("sort") || "new";
+    const a = getQueryParam("author") || "";
+    const th = (getQueryParam("theme") as Theme) || "";
 
     setSearch(q);
     setDayFilter(d);
     setOnlyToday(t);
     setOnlyGenesis(g);
     setSortNewest(s !== "old");
+    setAuthorFilter(a);
+
+    if (th === "system" || th === "light" || th === "dark") {
+      setTheme(th);
+      saveTheme(th);
+    }
 
     fetchRecords();
     setAllowedToday(canSubmitToday(todayDay));
 
-    // cleanup cooldown
     return () => {
       if (cooldownTimer.current) window.clearInterval(cooldownTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // sync query
   useEffect(() => {
-    // keep query in sync (shareable links)
     setQueryParams({
       q: search || null,
       day: dayFilter || null,
       today: onlyToday ? "1" : null,
       genesis: onlyGenesis ? "1" : null,
       sort: sortNewest ? "new" : "old",
+      author: authorFilter || null,
+      theme: theme !== "system" ? theme : null, // don't clutter link with system
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, dayFilter, onlyToday, onlyGenesis, sortNewest]);
+  }, [search, dayFilter, onlyToday, onlyGenesis, sortNewest, authorFilter, theme]);
 
+  // daily allowance
   useEffect(() => {
     setAllowedToday(canSubmitToday(todayDay));
   }, [todayDay]);
 
+  const dark = theme === "dark" || (theme === "system" && systemDark);
+  const S = styles(dark);
+
   async function fetchRecords() {
     setLoadingRecords(true);
-
     const { data, error } = await supabase
       .from("records")
       .select("*")
-      .order("created_at", { ascending: true }); // base order (we re-sort in UI)
+      .order("created_at", { ascending: true });
 
     setLoadingRecords(false);
 
@@ -219,6 +362,11 @@ export default function Home() {
       return;
     }
 
+    if (content.trim().length < minChars) {
+      setSubmitError(`Record is too short. Minimum ${minChars} characters.`);
+      return;
+    }
+
     if (!allowedToday) {
       setSubmitError("You have already submitted a record today (in this browser). Come back tomorrow.");
       return;
@@ -229,7 +377,6 @@ export default function Home() {
       return;
     }
 
-    // Start a short cooldown after pressing submit (reduces spam)
     if (cooldownEnabled) startCooldown(5);
 
     setSubmitting(true);
@@ -255,20 +402,41 @@ export default function Home() {
     await fetchRecords();
   }
 
+  function resetFilters() {
+    setSearch("");
+    setDayFilter("");
+    setOnlyToday(false);
+    setOnlyGenesis(false);
+    setSortNewest(true);
+    setAuthorFilter("");
+    setDaysToRender(7);
+  }
+
+  async function copyShareLink() {
+    const url = window.location.href;
+    await copyToClipboard(url);
+    setShareMsg("Link copied. Anyone opening it will see the same view.");
+    window.setTimeout(() => setShareMsg(null), 2800);
+  }
+
+  function setThemeAndPersist(t: Theme) {
+    setTheme(t);
+    saveTheme(t);
+  }
+
   // --------------------
-  // Derived data (filters + grouping)
+  // Derived data
   // --------------------
   const filteredRecords = useMemo(() => {
     let list = [...records];
 
-    // sort
+    // sort base
     list.sort((a, b) => {
       const ta = new Date(a.created_at).getTime();
       const tb = new Date(b.created_at).getTime();
       return sortNewest ? tb - ta : ta - tb;
     });
 
-    // filters
     const s = search.trim().toLowerCase();
     if (s) {
       list = list.filter(
@@ -279,13 +447,13 @@ export default function Home() {
       );
     }
 
-    if (onlyGenesis) {
-      list = list.filter((r) => r.day === 0);
+    if (authorFilter.trim()) {
+      const af = authorFilter.trim().toLowerCase();
+      list = list.filter((r) => r.author.toLowerCase() === af);
     }
 
-    if (onlyToday) {
-      list = list.filter((r) => r.day === todayDay);
-    }
+    if (onlyGenesis) list = list.filter((r) => r.day === 0);
+    if (onlyToday) list = list.filter((r) => r.day === todayDay);
 
     if (dayFilter.trim() !== "") {
       const d = Number(dayFilter);
@@ -293,9 +461,23 @@ export default function Home() {
     }
 
     return list;
-  }, [records, search, dayFilter, onlyToday, onlyGenesis, sortNewest, todayDay]);
+  }, [records, sortNewest, search, authorFilter, onlyGenesis, onlyToday, dayFilter, todayDay]);
 
-  const { recordsByDay, sortedDays, totalCount, todayCount } = useMemo(() => {
+  const stats = useMemo(() => {
+    const total = records.length;
+    const todayCount = records.filter((r) => r.day === todayDay).length;
+    const authors = new Set(records.map((r) => r.author.trim()).filter(Boolean)).size;
+
+    // last 7 days counts (including today)
+    const last7: { day: number; count: number }[] = [];
+    for (let d = Math.max(0, todayDay - 6); d <= todayDay; d++) {
+      last7.push({ day: d, count: records.filter((r) => r.day === d).length });
+    }
+
+    return { total, todayCount, authors, last7 };
+  }, [records, todayDay]);
+
+  const { recordsByDay, sortedDaysAll, sortedDaysRendered } = useMemo(() => {
     const map: Record<number, RecordItem[]> = {};
     for (const r of filteredRecords) {
       map[r.day] = map[r.day] || [];
@@ -304,134 +486,176 @@ export default function Home() {
 
     const allDays = Object.keys(map).map(Number);
 
-    // Day 0 always first, other days newest first
+    // Day 0 always first, others newest first
     const nonZero = allDays.filter((d) => d !== 0).sort((a, b) => b - a);
-    const days = (map[0] ? [0] : []).concat(nonZero);
+    const sortedAll = (map[0] ? [0] : []).concat(nonZero);
 
-    const total = filteredRecords.length;
-    const todayC = filteredRecords.filter((r) => r.day === todayDay).length;
+    // Render: Day 0 + recent N days (newest first among non-zero)
+    const renderNonZero = nonZero.slice(0, Math.max(0, daysToRender));
+    const rendered = (map[0] ? [0] : []).concat(renderNonZero);
 
-    return { recordsByDay: map, sortedDays: days, totalCount: total, todayCount: todayC };
-  }, [filteredRecords, todayDay]);
+    return { recordsByDay: map, sortedDaysAll: sortedAll, sortedDaysRendered: rendered };
+  }, [filteredRecords, daysToRender]);
 
-  async function copyShareLink() {
-    const url = window.location.href;
-    await copyToClipboard(url);
-    setShareMsg("Link copied. Anyone opening it will see the same filters.");
-    window.setTimeout(() => setShareMsg(null), 3000);
-  }
+  const hasMoreDays = sortedDaysRendered.length < sortedDaysAll.length;
 
-  function resetFilters() {
-    setSearch("");
-    setDayFilter("");
-    setOnlyToday(false);
-    setOnlyGenesis(false);
-    setSortNewest(true);
-  }
-
-  // --------------------
-  // UI
-  // --------------------
   return (
-    <main style={{ maxWidth: 860, margin: "40px auto", padding: "0 16px", fontFamily: "system-ui" }}>
-      <header style={{ marginBottom: 18 }}>
-        <h1 style={{ marginBottom: 6 }}>Real World</h1>
-        <div style={{ ...ui.small, marginBottom: 6 }}>
-          <strong>Today:</strong> Day {todayDay} · <span style={{ opacity: 0.7 }}>World start:</span>{" "}
-          {formatDateUTC(WORLD_START)}
-        </div>
-        <div style={{ fontStyle: "italic", opacity: 0.85 }}>All actions here are irreversible.</div>
-      </header>
-
-      {/* Dashboard */}
-      <section style={{ ...ui.card, marginBottom: 14 }}>
-        <div style={ui.row}>
+    <main style={S.page}>
+      {/* Header */}
+      <header style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div>
-            <div style={ui.label}>Records (current view)</div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{totalCount}</div>
-          </div>
-
-          <div>
-            <div style={ui.label}>Today in view</div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{todayCount}</div>
-          </div>
-
-          <div>
-            <div style={ui.label}>Write permission</div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
-              {allowedToday ? "Available" : "Used today"}
+            <h1 style={{ margin: "0 0 6px" }}>Real World</h1>
+            <div style={S.small}>
+              <strong>Today:</strong> Day {todayDay} ·{" "}
+              <span style={{ color: S.muted }}>World start:</span> {formatDateUTC(WORLD_START)}
             </div>
           </div>
 
+          {/* Theme switch */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={S.small}>Theme</span>
+            <select
+              value={theme}
+              onChange={(e) => setThemeAndPersist(e.target.value as Theme)}
+              style={{ ...S.input, width: 140 }}
+            >
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 10, fontStyle: "italic", opacity: 0.88 }}>
+          All actions here are irreversible.
+        </div>
+      </header>
+
+      {/* Stats */}
+      <section style={{ ...S.card, marginBottom: 12 }}>
+        <div style={S.row}>
+          <div>
+            <div style={S.label}>Total records</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.total}</div>
+          </div>
+
+          <div>
+            <div style={S.label}>Today</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.todayCount}</div>
+          </div>
+
+          <div>
+            <div style={S.label}>Authors</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.authors}</div>
+          </div>
+
           <div style={{ marginLeft: "auto" }}>
-            <button onClick={copyShareLink} style={ui.button}>
+            <button onClick={copyShareLink} style={S.button}>
               Copy share link
             </button>
-            {shareMsg && <div style={{ marginTop: 6, ...ui.small }}>{shareMsg}</div>}
+            {shareMsg && <div style={{ marginTop: 6, ...S.small }}>{shareMsg}</div>}
+          </div>
+        </div>
+
+        {/* last 7 days simple trend */}
+        <div style={{ marginTop: 12, ...S.small }}>
+          <div style={{ marginBottom: 6 }}>Last 7 days</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {stats.last7.map((x) => (
+              <span key={x.day} style={S.pill}>
+                Day {x.day}: {x.count}
+              </span>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Controls */}
-      <section style={{ ...ui.card, marginBottom: 14 }}>
-        <div style={ui.row}>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={ui.label}>Search (content / author)</div>
+      <section style={{ ...S.card, marginBottom: 12 }}>
+        <div style={S.row}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={S.label}>Search (content / author)</div>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search…"
-              style={{ ...ui.input, width: "100%" }}
+              style={S.input}
             />
           </div>
 
-          <div style={{ width: 160 }}>
-            <div style={ui.label}>Filter Day</div>
+          <div style={{ width: 140 }}>
+            <div style={S.label}>Filter Day</div>
             <input
               value={dayFilter}
               onChange={(e) => setDayFilter(e.target.value)}
               placeholder="e.g. 0, 1, 12"
-              style={{ ...ui.input, width: "100%" }}
+              style={S.input}
             />
           </div>
 
-          <div style={{ minWidth: 170 }}>
-            <div style={ui.label}>Quick filters</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+          <div style={{ width: 180 }}>
+            <div style={S.label}>Filter Author</div>
+            <input
+              value={authorFilter}
+              onChange={(e) => setAuthorFilter(e.target.value)}
+              placeholder="exact author name"
+              style={S.input}
+            />
+          </div>
+
+          <div style={{ minWidth: 220 }}>
+            <div style={S.label}>Quick</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
               <button
                 onClick={() => setOnlyToday((v) => !v)}
-                style={{ ...ui.button, background: onlyToday ? "black" : "white", color: onlyToday ? "white" : "black" }}
+                style={{
+                  ...S.button,
+                  background: onlyToday ? (dark ? "#e9eef5" : "#111418") : undefined,
+                  color: onlyToday ? (dark ? "#0b0d10" : "white") : undefined,
+                }}
               >
                 Today
               </button>
+
               <button
                 onClick={() => setOnlyGenesis((v) => !v)}
                 style={{
-                  ...ui.button,
-                  background: onlyGenesis ? "black" : "white",
-                  color: onlyGenesis ? "white" : "black",
+                  ...S.button,
+                  background: onlyGenesis ? (dark ? "#e9eef5" : "#111418") : undefined,
+                  color: onlyGenesis ? (dark ? "#0b0d10" : "white") : undefined,
                 }}
               >
                 Genesis
               </button>
-              <button onClick={resetFilters} style={ui.button}>
+
+              <button onClick={resetFilters} style={S.button}>
                 Reset
               </button>
             </div>
           </div>
 
-          <div style={{ minWidth: 160 }}>
-            <div style={ui.label}>Sort</div>
+          <div style={{ minWidth: 180 }}>
+            <div style={S.label}>Sort</div>
             <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
               <button
                 onClick={() => setSortNewest(true)}
-                style={{ ...ui.button, background: sortNewest ? "black" : "white", color: sortNewest ? "white" : "black" }}
+                style={{
+                  ...S.button,
+                  background: sortNewest ? (dark ? "#e9eef5" : "#111418") : undefined,
+                  color: sortNewest ? (dark ? "#0b0d10" : "white") : undefined,
+                }}
               >
                 Newest
               </button>
+
               <button
                 onClick={() => setSortNewest(false)}
-                style={{ ...ui.button, background: !sortNewest ? "black" : "white", color: !sortNewest ? "white" : "black" }}
+                style={{
+                  ...S.button,
+                  background: !sortNewest ? (dark ? "#e9eef5" : "#111418") : undefined,
+                  color: !sortNewest ? (dark ? "#0b0d10" : "white") : undefined,
+                }}
               >
                 Oldest
               </button>
@@ -463,66 +687,104 @@ export default function Home() {
       </section>
 
       {/* Timeline */}
-      <section style={{ ...ui.card, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      <section style={{ ...S.card, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
           <h2 style={{ margin: 0 }}>Timeline</h2>
-          <button onClick={fetchRecords} style={ui.button} disabled={loadingRecords}>
-            {loadingRecords ? "Refreshing..." : "Refresh"}
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={S.small}>Render days</span>
+            <select
+              value={String(daysToRender)}
+              onChange={(e) => setDaysToRender(Number(e.target.value))}
+              style={{ ...S.input, width: 120 }}
+            >
+              <option value="3">3 days</option>
+              <option value="7">7 days</option>
+              <option value="14">14 days</option>
+              <option value="30">30 days</option>
+              <option value="9999">All</option>
+            </select>
+
+            <button onClick={fetchRecords} style={S.button} disabled={loadingRecords}>
+              {loadingRecords ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </div>
 
-        <div style={{ marginTop: 8, ...ui.small }}>
-          {sortedDays.length === 0 ? "No records match your filters." : "Day 0 stays on top. Other days are newest-first."}
+        <div style={{ marginTop: 8, ...S.small }}>
+          {sortedDaysRendered.length === 0
+            ? "No records match your filters."
+            : "Day 0 stays on top. Other days are newest-first."}
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {sortedDays.map((day) => (
+          {sortedDaysRendered.map((day) => (
             <div key={day} style={{ marginBottom: 22 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
                 <h3 style={{ margin: 0 }}>
                   {day === 0 ? "Day 0 (Genesis)" : `Day ${day}`}
                 </h3>
-                <span style={{ ...ui.small }}>{getWorldMood(day)}</span>
+                <span style={S.small}>{getWorldMood(day)}</span>
+                {day === todayDay && <span style={S.pill}>Today</span>}
               </div>
 
               <div style={{ marginTop: 10 }}>
                 {recordsByDay[day].map((r) => (
                   <div key={r.id} style={{ marginBottom: 12 }}>
-                    <div style={{ whiteSpace: "pre-wrap" }}>{r.content}</div>
-                    <small style={{ opacity: 0.8 }}>
-                      — {r.author} · <span style={{ opacity: 0.7 }}>{new Date(r.created_at).toLocaleString()}</span>
+                    <div style={{ whiteSpace: "pre-wrap" }}>
+                      {highlight(r.content, search)}
+                    </div>
+
+                    <small style={{ opacity: 0.85 }}>
+                      —{" "}
+                      <button
+                        style={S.linkBtn}
+                        onClick={() => setAuthorFilter(r.author)}
+                        title="Filter by this author"
+                      >
+                        {highlight(r.author, search)}
+                      </button>
+                      {" · "}
+                      <span style={{ opacity: 0.7 }}>{new Date(r.created_at).toLocaleString()}</span>
                     </small>
                   </div>
                 ))}
               </div>
             </div>
           ))}
+
+          {hasMoreDays && (
+            <div style={{ marginTop: 8, ...S.small }}>
+              More days exist but are not rendered. Increase “Render days” to see more.
+            </div>
+          )}
         </div>
       </section>
 
+      <hr style={S.divider} />
+
       {/* Submit */}
-      <section style={ui.card}>
+      <section style={S.card}>
         <h2 style={{ marginTop: 0 }}>Leave a record</h2>
 
-        <div style={{ marginBottom: 8, opacity: 0.85 }}>
+        <div style={{ marginBottom: 8, opacity: 0.88 }}>
           {allowedToday
-            ? "Write something you would accept being seen years from now."
+            ? `Write something you would accept being seen years from now. (min ${minChars} chars)`
             : "You have already submitted a record today (in this browser). Come back tomorrow."}
         </div>
 
-        <div style={ui.row}>
-          <div style={{ minWidth: 240 }}>
-            <div style={ui.label}>Your name</div>
+        <div style={S.row}>
+          <div style={{ minWidth: 240, flex: 1 }}>
+            <div style={S.label}>Your name</div>
             <input
               placeholder="Your name"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
-              style={{ ...ui.input, width: "100%" }}
+              style={S.input}
             />
           </div>
 
           <div style={{ minWidth: 260 }}>
-            <div style={ui.label}>Safety</div>
+            <div style={S.label}>Safety</div>
             <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="checkbox"
@@ -532,18 +794,18 @@ export default function Home() {
               Enable 5s cooldown (anti-impulse)
             </label>
             {cooldownEnabled && cooldownLeft > 0 && (
-              <div style={{ marginTop: 6, ...ui.small }}>Cooldown: {cooldownLeft}s</div>
+              <div style={{ marginTop: 6, ...S.small }}>Cooldown: {cooldownLeft}s</div>
             )}
           </div>
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <div style={ui.label}>Record</div>
+          <div style={S.label}>Record</div>
           <textarea
             placeholder="What should this world remember?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            style={{ ...ui.input, width: "100%", height: 140 }}
+            style={{ ...S.input, height: 150, resize: "vertical" as const }}
           />
         </div>
 
@@ -557,18 +819,18 @@ export default function Home() {
           <button
             onClick={submitRecord}
             disabled={submitting || !allowedToday}
-            style={submitting || !allowedToday ? ui.button : ui.buttonPrimary}
+            style={submitting || !allowedToday ? S.button : S.buttonPrimary}
           >
             {submitting ? "Submitting..." : "Submit (irreversible)"}
           </button>
         </div>
 
-        <div style={{ marginTop: 10, ...ui.small }}>
-          Tip: Share filtered views using “Copy share link”.
+        <div style={{ marginTop: 10, ...S.small }}>
+          Tip: click an author name to filter · share the exact view via “Copy share link”.
         </div>
       </section>
 
-      <footer style={{ marginTop: 18, ...ui.small }}>
+      <footer style={{ marginTop: 18, ...S.small, opacity: 0.75 }}>
         Built for a world where history cannot be rewritten.
       </footer>
     </main>
