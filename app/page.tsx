@@ -68,6 +68,18 @@ export default function Home() {
     await fetchRecords();
   }
 
+  // Group records by day
+  const recordsByDay = records.reduce<Record<number, RecordItem[]>>((acc, r) => {
+    acc[r.day] = acc[r.day] || [];
+    acc[r.day].push(r);
+    return acc;
+  }, {});
+
+  // Sort days: newest first
+  const sortedDays = Object.keys(recordsByDay)
+    .map(Number)
+    .sort((a, b) => b - a);
+
   return (
     <main>
       <h1>Real World</h1>
@@ -114,12 +126,16 @@ export default function Home() {
       </details>
 
       <section style={{ marginBottom: 24 }}>
-        {records.map((r) => (
-          <div key={r.id} style={{ marginBottom: 16 }}>
-            <div>{r.content}</div>
-            <small>
-              — {r.author}, Day {r.day}
-            </small>
+        {sortedDays.map((day) => (
+          <div key={day} style={{ marginBottom: 24 }}>
+            <h2>Day {day}</h2>
+
+            {recordsByDay[day].map((r) => (
+              <div key={r.id} style={{ marginBottom: 12 }}>
+                <div>{r.content}</div>
+                <small>— {r.author}</small>
+              </div>
+            ))}
           </div>
         ))}
       </section>
@@ -141,7 +157,7 @@ export default function Home() {
           placeholder="What should this world remember?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          style={{ width: "100%", height: 80, marginBottom: 8 }}
+          style={{ width: "100%", height: 90, marginBottom: 8 }}
         />
         <br />
 
