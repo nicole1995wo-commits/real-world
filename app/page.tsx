@@ -3,6 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+/**
+ * =========================
+ *  Real World — Perfect Build
+ *  - Day system (A1)
+ *  - Timeline grouping + Day 0 pinned (A1.1 + A1.2)
+ *  - World rules + world mood (A)
+ *  - Dark mode (system + manual)
+ *  - Search + highlight
+ *  - Author filter (click to filter)
+ *  - Shareable links (query params)
+ *  - Product-level stats
+ *  - Strong client-side anti-spam
+ * =========================
+ */
+
 // --------------------
 // World time settings
 // --------------------
@@ -27,6 +42,9 @@ function getWorldMood(day: number) {
   return "Continuity — the world keeps moving, with or without you.";
 }
 
+// --------------------
+// Types
+// --------------------
 type RecordItem = {
   id: string;
   content: string;
@@ -38,11 +56,15 @@ type RecordItem = {
 // --------------------
 // Anti-spam (client-side)
 // --------------------
-const MIN_CHARS = 10;
-const MIN_INTERVAL_SECONDS = 60; // 最短间隔：60秒（同浏览器）
+const MIN_CHARS = 12;
+const MIN_INTERVAL_SECONDS = 60;
 const COOLDOWN_SECONDS = 5;
 
-// daily once
+function normalizeText(s: string) {
+  return s.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// daily once per browser
 function canSubmitToday(day: number) {
   try {
     const v = localStorage.getItem("realworld:last_submit_day");
@@ -58,7 +80,7 @@ function markSubmittedToday(day: number) {
   } catch {}
 }
 
-// min interval
+// minimum interval per browser
 function canSubmitByInterval() {
   try {
     const v = localStorage.getItem("realworld:last_submit_ts");
@@ -75,10 +97,7 @@ function markSubmitTimestamp() {
   } catch {}
 }
 
-// duplicate content guard (same day)
-function normalizeText(s: string) {
-  return s.trim().replace(/\s+/g, " ").toLowerCase();
-}
+// duplicate guard per day
 function isDuplicateToday(day: number, content: string) {
   try {
     const key = `realworld:dup:${day}`;
@@ -97,7 +116,7 @@ function markDuplicateToday(day: number, content: string) {
 }
 
 // --------------------
-// Query helpers (shareable links)
+// Query helpers (share links)
 // --------------------
 function getQueryParam(name: string) {
   if (typeof window === "undefined") return null;
@@ -117,9 +136,10 @@ async function copyToClipboard(text: string) {
 }
 
 // --------------------
-// Theme (simple)
+// Theme
 // --------------------
 type Theme = "system" | "light" | "dark";
+
 function getSystemDark() {
   if (typeof window === "undefined") return false;
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -138,7 +158,7 @@ function saveTheme(t: Theme) {
 }
 
 // --------------------
-// Search highlight
+// Highlight
 // --------------------
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -164,12 +184,12 @@ function highlight(text: string, query: string) {
 }
 
 // --------------------
-// UI styles
+// Styles
 // --------------------
 function styles(dark: boolean) {
   const bg = dark ? "#0b0d10" : "#ffffff";
   const fg = dark ? "#e9eef5" : "#111418";
-  const muted = dark ? "rgba(233,238,245,0.7)" : "rgba(17,20,24,0.65)";
+  const muted = dark ? "rgba(233,238,245,0.72)" : "rgba(17,20,24,0.65)";
   const border = dark ? "rgba(233,238,245,0.16)" : "rgba(17,20,24,0.12)";
   const cardBg = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)";
   const inputBg = dark ? "rgba(255,255,255,0.06)" : "white";
@@ -196,10 +216,10 @@ function styles(dark: boolean) {
     } as React.CSSProperties,
     row: { display: "flex", gap: 12, flexWrap: "wrap" as const } as React.CSSProperties,
     label: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
-    small: { fontSize: 12, opacity: 0.8 } as React.CSSProperties,
+    small: { fontSize: 12, opacity: 0.82 } as React.CSSProperties,
     input: {
-      padding: 9,
-      borderRadius: 10,
+      padding: 10,
+      borderRadius: 12,
       border: `1px solid ${border}`,
       background: inputBg,
       color: fg,
@@ -245,10 +265,9 @@ function styles(dark: boolean) {
       color: fg,
       cursor: "pointer",
       textDecoration: "underline",
-      opacity: 0.9,
+      opacity: 0.92,
     } as React.CSSProperties,
     muted,
-    border,
   };
 }
 
@@ -266,7 +285,7 @@ export default function Home() {
   // submit
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
-  const [honeypot, setHoneypot] = useState(""); // hidden spam trap
+  const [honeypot, setHoneypot] = useState(""); // hidden trap
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [allowedToday, setAllowedToday] = useState(true);
@@ -288,6 +307,7 @@ export default function Home() {
   // share
   const [shareMsg, setShareMsg] = useState<string | null>(null);
 
+  // theme init
   useEffect(() => {
     const t = loadTheme();
     setTheme(t);
@@ -301,6 +321,7 @@ export default function Home() {
     }
   }, []);
 
+  // init query + data
   useEffect(() => {
     const q = getQueryParam("q") || "";
     const d = getQueryParam("day") || "";
@@ -331,6 +352,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // sync query
   useEffect(() => {
     setQueryParams({
       q: search || null,
@@ -344,6 +366,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, dayFilter, onlyToday, onlyGenesis, sortNewest, authorFilter, theme]);
 
+  // daily allowance
   useEffect(() => {
     setAllowedToday(canSubmitToday(todayDay));
   }, [todayDay]);
@@ -353,13 +376,8 @@ export default function Home() {
 
   async function fetchRecords() {
     setLoadingRecords(true);
-    const { data, error } = await supabase
-      .from("records")
-      .select("*")
-      .order("created_at", { ascending: true });
-
+    const { data, error } = await supabase.from("records").select("*").order("created_at", { ascending: true });
     setLoadingRecords(false);
-
     if (error) {
       console.error(error);
       return;
@@ -386,7 +404,6 @@ export default function Home() {
     setSubmitError(null);
     setShareMsg(null);
 
-    // honeypot: if filled, likely bot
     if (honeypot.trim()) {
       setSubmitError("Submission blocked.");
       return;
@@ -460,10 +477,9 @@ export default function Home() {
   }
 
   async function copyShareLink() {
-    const url = window.location.href;
-    await copyToClipboard(url);
+    await copyToClipboard(window.location.href);
     setShareMsg("Link copied. Anyone opening it will see the same view.");
-    window.setTimeout(() => setShareMsg(null), 2800);
+    window.setTimeout(() => setShareMsg(null), 2400);
   }
 
   function setThemeAndPersist(t: Theme) {
@@ -471,9 +487,9 @@ export default function Home() {
     saveTheme(t);
   }
 
+  // Derived data
   const filteredRecords = useMemo(() => {
     let list = [...records];
-
     list.sort((a, b) => {
       const ta = new Date(a.created_at).getTime();
       const tb = new Date(b.created_at).getTime();
@@ -482,12 +498,7 @@ export default function Home() {
 
     const s = search.trim().toLowerCase();
     if (s) {
-      list = list.filter(
-        (r) =>
-          r.content.toLowerCase().includes(s) ||
-          r.author.toLowerCase().includes(s) ||
-          String(r.day).includes(s)
-      );
+      list = list.filter((r) => r.content.toLowerCase().includes(s) || r.author.toLowerCase().includes(s) || String(r.day).includes(s));
     }
 
     if (authorFilter.trim()) {
@@ -506,7 +517,16 @@ export default function Home() {
     return list;
   }, [records, sortNewest, search, authorFilter, onlyGenesis, onlyToday, dayFilter, todayDay]);
 
-  const { recordsByDay, sortedDaysAll, sortedDaysRendered, authorsCount } = useMemo(() => {
+  const stats = useMemo(() => {
+    const total = records.length;
+    const todayCount = records.filter((r) => r.day === todayDay).length;
+    const authors = new Set(records.map((r) => r.author.trim()).filter(Boolean)).size;
+    const worldAge = todayDay;
+
+    return { total, todayCount, authors, worldAge };
+  }, [records, todayDay]);
+
+  const { recordsByDay, sortedDaysAll, sortedDaysRendered } = useMemo(() => {
     const map: Record<number, RecordItem[]> = {};
     for (const r of filteredRecords) {
       map[r.day] = map[r.day] || [];
@@ -520,9 +540,7 @@ export default function Home() {
     const renderedNonZero = nonZero.slice(0, Math.max(0, daysToRender));
     const rendered = (map[0] ? [0] : []).concat(renderedNonZero);
 
-    const authors = new Set(filteredRecords.map((r) => r.author.trim()).filter(Boolean)).size;
-
-    return { recordsByDay: map, sortedDaysAll: allSorted, sortedDaysRendered: rendered, authorsCount: authors };
+    return { recordsByDay: map, sortedDaysAll: allSorted, sortedDaysRendered: rendered };
   }, [filteredRecords, daysToRender]);
 
   const hasMoreDays = sortedDaysRendered.length < sortedDaysAll.length;
@@ -534,18 +552,14 @@ export default function Home() {
           <div>
             <h1 style={{ margin: "0 0 6px" }}>Real World</h1>
             <div style={S.small}>
-              <strong>Today:</strong> Day {todayDay} ·{" "}
+              <strong>Today:</strong> Day {todayDay} · <span style={{ color: S.muted }}>World age:</span> {stats.worldAge} days ·{" "}
               <span style={{ color: S.muted }}>World start:</span> {formatDateUTC(WORLD_START)}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={S.small}>Theme</span>
-            <select
-              value={theme}
-              onChange={(e) => setThemeAndPersist(e.target.value as Theme)}
-              style={{ ...S.input, width: 140 }}
-            >
+            <select value={theme} onChange={(e) => setThemeAndPersist(e.target.value as Theme)} style={{ ...S.input, width: 140 }}>
               <option value="system">System</option>
               <option value="light">Light</option>
               <option value="dark">Dark</option>
@@ -561,22 +575,17 @@ export default function Home() {
       <section style={{ ...S.card, marginBottom: 12 }}>
         <div style={S.row}>
           <div>
-            <div style={S.label}>Records (current view)</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{filteredRecords.length}</div>
+            <div style={S.label}>Total records</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.total}</div>
           </div>
-
           <div>
-            <div style={S.label}>Authors (current view)</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{authorsCount}</div>
+            <div style={S.label}>Today</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.todayCount}</div>
           </div>
-
           <div>
-            <div style={S.label}>Write permission</div>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>
-              {allowedToday ? "Available" : "Used today"}
-            </div>
+            <div style={S.label}>Authors</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{stats.authors}</div>
           </div>
-
           <div style={{ marginLeft: "auto" }}>
             <button onClick={copyShareLink} style={S.button}>Copy share link</button>
             {shareMsg && <div style={{ marginTop: 6, ...S.small }}>{shareMsg}</div>}
@@ -587,20 +596,17 @@ export default function Home() {
       <section style={{ ...S.card, marginBottom: 12 }}>
         <div style={S.row}>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={S.label}>Search (content / author)</div>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" style={S.input} />
+            <div style={S.label}>Search</div>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="content / author" style={S.input} />
           </div>
-
           <div style={{ width: 140 }}>
             <div style={S.label}>Filter Day</div>
             <input value={dayFilter} onChange={(e) => setDayFilter(e.target.value)} placeholder="e.g. 0, 1, 12" style={S.input} />
           </div>
-
           <div style={{ width: 180 }}>
             <div style={S.label}>Filter Author</div>
             <input value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)} placeholder="exact author name" style={S.input} />
           </div>
-
           <div style={{ minWidth: 220 }}>
             <div style={S.label}>Quick</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
@@ -609,7 +615,6 @@ export default function Home() {
               <button onClick={resetFilters} style={S.button}>Reset</button>
             </div>
           </div>
-
           <div style={{ minWidth: 180 }}>
             <div style={S.label}>Sort</div>
             <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
@@ -655,7 +660,7 @@ export default function Home() {
 
         <div style={{ marginTop: 8, ...S.small }}>
           Day 0 stays on top. Other days are newest-first.
-          {hasMoreDays && " More days exist but are not rendered. Increase “Render days” to see more."}
+          {hasMoreDays && " More days exist but are not rendered."}
         </div>
 
         <div style={{ marginTop: 14 }}>
@@ -698,14 +703,7 @@ export default function Home() {
             : "You have already submitted a record today (in this browser). Come back tomorrow."}
         </div>
 
-        {/* honeypot - hidden */}
-        <input
-          value={honeypot}
-          onChange={(e) => setHoneypot(e.target.value)}
-          style={{ display: "none" }}
-          tabIndex={-1}
-          autoComplete="off"
-        />
+        <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
 
         <div style={S.row}>
           <div style={{ minWidth: 240, flex: 1 }}>
@@ -713,11 +711,11 @@ export default function Home() {
             <input placeholder="Your name" value={author} onChange={(e) => setAuthor(e.target.value)} style={S.input} />
           </div>
 
-          <div style={{ minWidth: 260 }}>
+          <div style={{ minWidth: 320 }}>
             <div style={S.label}>Safety</div>
             <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={cooldownEnabled} onChange={(e) => setCooldownEnabled(e.target.checked)} />
-              Enable {COOLDOWN_SECONDS}s cooldown (anti-impulse)
+              Enable {COOLDOWN_SECONDS}s cooldown
             </label>
             {cooldownEnabled && cooldownLeft > 0 && <div style={{ marginTop: 6, ...S.small }}>Cooldown: {cooldownLeft}s</div>}
             <div style={{ marginTop: 6, ...S.small }}>Min interval: {MIN_INTERVAL_SECONDS}s (this browser)</div>
