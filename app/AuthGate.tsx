@@ -6,9 +6,11 @@ import { supabase } from "@/lib/supabaseClient";
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
@@ -17,7 +19,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const origin = useMemo(() => (typeof window !== "undefined" ? window.location.origin : ""), []);
+  const origin = useMemo(
+    () => (typeof window !== "undefined" ? window.location.origin : ""),
+    []
+  );
 
   async function submit() {
     setMsg("");
@@ -28,10 +33,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: origin } // 邮箱验证后跳回你网站
+          options: { emailRedirectTo: origin }
         });
         if (error) return setMsg(error.message);
-        setMsg("✅ 注册成功：请去邮箱点击验证链接，然后再回来登录。");
+        setMsg("✅ 注册成功：请去邮箱点击验证链接，然后回来登录。");
         setMode("login");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -59,6 +64,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  // 未登录：奢华认证页
   if (!session) {
     return (
       <div className="min-h-screen relative bg-[#070A10] text-white overflow-hidden">
@@ -142,11 +148,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // 已登录：右上角用户条
   return (
     <>
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white/80 backdrop-blur">
         <span className="max-w-[220px] truncate">{session.user.email}</span>
-        <button onClick={logout} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1">
+        <button
+          onClick={logout}
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1"
+        >
           退出
         </button>
       </div>
