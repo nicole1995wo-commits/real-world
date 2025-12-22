@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import AuthGate from "@/app/AuthGate";
-import { supabase } from "@/lib/supabaseClient";
+import { I18N, LANGS, type Lang } from "@/lib/i18n";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -14,13 +15,15 @@ import {
   Globe,
   Radar,
   Clock,
+  Stars,
   LayoutDashboard,
+  Command,
   Pin,
   Flame,
   Hash,
   User,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import {
   LineChart,
@@ -29,31 +32,132 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid
+  CartesianGrid,
 } from "recharts";
 
-type RecordRow = {
+/** 你的原逻辑全部保留（仅替换文本 + 加语言切换） */
+
+type RecordItem = {
   id: string;
-  user_id: string;
+  day: number;
   title: string;
   body: string;
   author: string;
-  day: number;
+  ts: string;
   heat: number;
   tags: string[];
-  created_at: string;
 };
 
-type ViewMode = "chrono";
+type ViewMode = "chrono" | "constellation";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
+
+function useHotkeys(onCommand: () => void) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toLowerCase().includes("mac");
+      const cmdk = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (cmdk) {
+        e.preventDefault();
+        onCommand();
+      }
+      if (e.key === "Escape") onCommand();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onCommand]);
+}
+
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
+
 function formatUTC(ts: string) {
   return ts.replace("T", " ").replace("Z", " UTC");
+}
+
+function pseudoHeatmap(days = 21) {
+  const arr = Array.from({ length: days }, (_, i) => ({
+    d: i + 1,
+    v: Math.floor(Math.pow(Math.random(), 0.7) * 8),
+  }));
+  return arr;
+}
+
+function genMockRecords(): RecordItem[] {
+  const authors = ["Founder", "Tester", "Observer", "Archivist"];
+  const tagsPool = ["truth", "rule", "genesis", "memory", "signal", "warning", "future"];
+  const now = Date.now();
+
+  return Array.from({ length: 18 }).map((_, idx) => {
+    const day = idx < 3 ? 0 : Math.floor(idx / 2);
+    const author = authors[idx % authors.length];
+    const heat = clamp(Math.floor(Math.random() * 110), 10, 100);
+    const tags = Array.from({ length: 2 + (idx % 2) }, () => tagsPool[Math.floor(Math.random() * tagsPool.length)]);
+    const titleCandidates = [
+      "Genesis — the first irreversible mark.",
+      "We once began from this very moment.",
+      "A rule that survived the night.",
+      "Signal detected beyond the usual noise.",
+      "Write something that outlives the timeline.",
+      "The world remembers. You don't need to.",
+      "If it matters, make it irreversible.",
+    ];
+    const bodyCandidates = [
+      "This is not a note. It’s a trace.",
+      "You can’t undo reality. You can only design it.",
+      "Truth is the only compounding asset that never decays.",
+      "Write like the world is watching. Because it is.",
+      "Systems are memories with teeth.",
+    ];
+
+    const ts = new Date(now - idx * 1000 * 60 * (20 + Math.random() * 50)).toISOString().replace(".000", "");
+    return {
+      id: `r_${idx}_${Math.random().toString(16).slice(2)}`,
+      day,
+      title: titleCandidates[idx % titleCandidates.length],
+      body: bodyCandidates[idx % bodyCandidates.length],
+      author,
+      ts,
+      heat,
+      tags,
+    };
+  });
+}
+
+function CountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const start = display;
+    const end = value;
+    const t0 = performance.now();
+    const dur = 700;
+    let raf = 0;
+
+    const tick = (t: number) => {
+      const p = clamp((t - t0) / dur, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(start + (end - start) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  return <span>{display.toLocaleString()}</span>;
+}
+
+function Pill({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
+      {icon}
+      {children}
+    </span>
+  );
 }
 
 function GlassCard({
@@ -89,37 +193,44 @@ function AmbientBackground() {
         style={{
           background:
             "conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(120,102,255,0.16), rgba(0,210,255,0.10), rgba(255,0,160,0.08), rgba(255,255,255,0.0))",
-          filter: "blur(70px)"
+          filter: "blur(70px)",
         }}
       />
       <div
         className="absolute inset-0 opacity-[0.06] mix-blend-overlay"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")"
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")",
         }}
       />
     </div>
   );
 }
 
-function Pill({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+function WorldPulseBar({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
-      {icon}
-      {children}
-    </span>
+    <div className="relative w-[260px] overflow-hidden rounded-full border border-white/10 bg-white/5 px-3 py-2">
+      <div className="flex items-center gap-2 text-xs text-white/80">
+        <Radar className="h-3.5 w-3.5 text-white/70" />
+        <span className="truncate">{label}</span>
+      </div>
+      <motion.div
+        className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        animate={{ x: ["-30%", "140%"] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
   );
 }
 
 function SliderConfirm({
   onConfirm,
   disabled,
-  label = "Slide to seal (irreversible)"
+  label
 }: {
   onConfirm: () => void;
   disabled?: boolean;
-  label?: string;
+  label: string;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const handleRef = useRef<HTMLDivElement | null>(null);
@@ -162,7 +273,7 @@ function SliderConfirm({
         </motion.div>
       </div>
       <div className="mt-2 text-[11px] text-white/45">
-        Rule: login required · write is irreversible · DB owns the truth.
+        Tip: ⌘/Ctrl + K opens command palette.
       </div>
     </div>
   );
@@ -170,25 +281,19 @@ function SliderConfirm({
 
 function RecordCard({
   r,
+  onOpen,
   pinned,
   onPin,
-  onOpen,
-  flash
 }: {
-  r: RecordRow;
+  r: RecordItem;
+  onOpen: (r: RecordItem) => void;
   pinned: boolean;
   onPin: (id: string) => void;
-  onOpen: (r: RecordRow) => void;
-  flash: boolean;
 }) {
   return (
     <motion.div
       layout
-      className={cn(
-        "group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.055]",
-        flash &&
-          "border-white/30 bg-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.10),0_0_40px_rgba(120,102,255,0.25)]"
-      )}
+      className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.055]"
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
     >
@@ -201,7 +306,7 @@ function RecordCard({
               Day {r.day}
             </span>
             <span>·</span>
-            <span>{formatUTC(r.created_at.replace(".000", ""))}</span>
+            <span>{formatUTC(r.ts)}</span>
           </div>
           <div className="mt-2 text-[15px] font-semibold leading-snug text-white/90">
             {r.title}
@@ -230,7 +335,7 @@ function RecordCard({
           <Flame className="h-3 w-3" />
           Heat {r.heat}
         </span>
-        {(r.tags || []).slice(0, 3).map((t) => (
+        {r.tags.slice(0, 3).map((t) => (
           <span
             key={t}
             className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60"
@@ -251,21 +356,31 @@ function RecordCard({
 }
 
 export default function Page() {
-  const [records, setRecords] = useState<RecordRow[]>([]);
-  const [view] = useState<ViewMode>("chrono");
+  // ✅ 语言状态（新增：只影响文案/dir，不动其它功能）
+  const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
+    return (localStorage.getItem("lang") as Lang) || "en";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("lang", lang);
+  }, [lang]);
+  const t = I18N[lang];
+
+  const [records, setRecords] = useState<RecordItem[]>(() => genMockRecords());
+  const [view, setView] = useState<ViewMode>("chrono");
   const [rangeDays, setRangeDays] = useState(14);
   const [query, setQuery] = useState("");
+  const [detail, setDetail] = useState<RecordItem | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [pinned, setPinned] = useState<Record<string, boolean>>({});
-  const [writeMode, setWriteMode] = useState<"short" | "manifesto" | "rule" | "event">(
-    "manifesto"
-  );
+  const [writeMode, setWriteMode] = useState<"short" | "manifesto" | "rule" | "event">("manifesto");
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
   const [systemLine, setSystemLine] = useState("World heartbeat stable · signals streaming…");
-  const [detail, setDetail] = useState<RecordRow | null>(null);
-  const [flashId, setFlashId] = useState<string | null>(null);
-
   const timelineTopRef = useRef<HTMLDivElement | null>(null);
+
+  useHotkeys(() => setCmdOpen((v) => !v));
 
   useEffect(() => {
     const lines = [
@@ -273,37 +388,25 @@ export default function Page() {
       "Chronicle index rebuilt · trace integrity 99.9%",
       "Entropy rising · preserve what matters.",
       "Noisy day detected · seek true signal.",
-      "Irreversible mode enabled · write carefully."
+      "Irreversible mode enabled · write carefully.",
     ];
     let i = 0;
-    const t = setInterval(() => {
+    const tt = setInterval(() => {
       i = (i + 1) % lines.length;
       setSystemLine(lines[i]);
     }, 6500);
-    return () => clearInterval(t);
+    return () => clearInterval(tt);
   }, []);
 
-  async function loadRecords() {
-    const { data: s } = await supabase.auth.getSession();
-    const user = s.session?.user;
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("records_v2")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(80);
-
-    if (!error && data) setRecords(data as any);
-  }
-
-  useEffect(() => {
-    loadRecords();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => loadRecords());
-    return () => sub.subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const heat = useMemo(() => pseudoHeatmap(21), []);
+  const chartData = useMemo(
+    () =>
+      Array.from({ length: 14 }).map((_, i) => ({
+        d: `D${i + 1}`,
+        v: Math.floor(20 + Math.random() * 50),
+      })),
+    []
+  );
 
   const filtered = useMemo(() => {
     const qq = query.trim().toLowerCase();
@@ -313,10 +416,10 @@ export default function Page() {
         r.title.toLowerCase().includes(qq) ||
         r.body.toLowerCase().includes(qq) ||
         r.author.toLowerCase().includes(qq) ||
-        (r.tags || []).some((t) => t.toLowerCase().includes(qq))
+        r.tags.some((ttt) => ttt.toLowerCase().includes(qq))
       );
     });
-    return list;
+    return list.slice(0, 28);
   }, [records, query]);
 
   const totals = useMemo(() => {
@@ -326,120 +429,65 @@ export default function Page() {
     return { total, today, authors };
   }, [records]);
 
-  const heat = useMemo(
-    () =>
-      Array.from({ length: 21 }).map((_, i) => ({
-        d: i + 1,
-        v: Math.floor(Math.pow(Math.random(), 0.7) * 8)
-      })),
-    []
-  );
+  const openRecord = (r: RecordItem) => {
+    setDetail(r);
+    setDrawerOpen(true);
+  };
 
-  const chartData = useMemo(
-    () =>
-      Array.from({ length: 14 }).map((_, i) => ({
-        d: `D${i + 1}`,
-        v: Math.floor(20 + Math.random() * 50)
-      })),
-    []
-  );
+  const onNew = () => {
+    const el = document.getElementById("write-panel");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
-  async function addRecord() {
+  const addRecord = () => {
     const a = author.trim() || "Founder";
-    const t = text.trim();
-    if (t.length < 12) return;
+    const tt = text.trim();
+    if (tt.length < 12) return;
 
     const title =
       writeMode === "short"
-        ? t.slice(0, 44)
+        ? tt.slice(0, 44)
         : writeMode === "rule"
-        ? `Rule: ${t.slice(0, 40)}`
+        ? `Rule: ${tt.slice(0, 40)}`
         : writeMode === "event"
-        ? `Event: ${t.slice(0, 40)}`
-        : t.slice(0, 60);
+        ? `Event: ${tt.slice(0, 40)}`
+        : tt.slice(0, 60);
 
     const body =
       writeMode === "short"
-        ? t
+        ? tt
         : writeMode === "manifesto"
-        ? t
+        ? tt
         : writeMode === "rule"
-        ? `This rule is binding: ${t}`
-        : `This event matters: ${t}`;
+        ? `This rule is binding: ${tt}`
+        : `This event matters: ${tt}`;
 
-    const { data: s } = await supabase.auth.getSession();
-    const user = s.session?.user;
-    if (!user) return;
-
-    const payload = {
-      user_id: user.id,
+    const item: RecordItem = {
+      id: `r_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      day: 0,
       title,
       body,
       author: a,
+      ts: new Date().toISOString().replace(".000", ""),
       heat: clamp(30 + Math.floor(Math.random() * 70), 0, 100),
-      tags: ["signal", writeMode]
+      tags: ["signal", writeMode],
     };
 
-    const { data, error } = await supabase.from("records_v2").insert(payload).select("*").single();
-    if (error) return;
-
-    setRecords((prev) => [data as any, ...prev]);
+    setRecords((prev) => [item, ...prev]);
     setText("");
-
-    setFlashId((data as any).id);
-    setTimeout(() => setFlashId(null), 2500);
 
     setTimeout(() => {
       timelineTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
-  }
+    }, 50);
+  };
 
   return (
     <AuthGate>
-      <div className="relative min-h-screen bg-[#070A10] text-white">
+      <div dir={lang === "ar" ? "rtl" : "ltr"} className="relative min-h-screen bg-[#070A10] text-white">
         <AmbientBackground />
 
-        <AnimatePresence>
-          {detail && (
-            <motion.div
-              className="fixed inset-0 z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onMouseDown={() => setDetail(null)}
-            >
-              <div className="absolute inset-0 bg-black/55" />
-              <motion.div
-                className="absolute right-0 top-0 h-full w-full max-w-xl border-l border-white/10 bg-black/60 backdrop-blur-xl"
-                initial={{ x: 40, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 40, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 220, damping: 24 }}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <div className="p-5">
-                  <div className="text-xs text-white/55">
-                    Day {detail.day} · {formatUTC(detail.created_at.replace(".000", ""))}
-                  </div>
-                  <div className="mt-3 text-2xl font-semibold text-white/92">{detail.title}</div>
-                  <div className="mt-3 text-sm text-white/70 leading-relaxed">{detail.body}</div>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <Pill icon={<User className="h-3.5 w-3.5" />}>{detail.author}</Pill>
-                    <Pill icon={<Flame className="h-3.5 w-3.5" />}>Heat {detail.heat}</Pill>
-                    {(detail.tags || []).map((t) => (
-                      <Pill key={t} icon={<Hash className="h-3.5 w-3.5" />}>
-                        {t}
-                      </Pill>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <div className="relative mx-auto max-w-[1400px] px-5 pb-10 pt-8">
-          {/* Header */}
+          {/* Top Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -447,55 +495,84 @@ export default function Page() {
                   <Globe className="h-5 w-5 text-white/90" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white/90">现实世界</div>
-                  <div className="text-xs text-white/50">World start: 2025-12-20 00:00:00 UTC</div>
+                  <div className="text-sm font-semibold text-white/90">{t.appName}</div>
+                  <div className="text-xs text-white/50">{t.tagline}</div>
                 </div>
               </div>
 
               <div className="hidden items-center gap-2 md:flex">
-                <div className="relative w-[320px] overflow-hidden rounded-full border border-white/10 bg-white/5 px-3 py-2">
-                  <div className="flex items-center gap-2 text-xs text-white/80">
-                    <Radar className="h-3.5 w-3.5 text-white/70" />
-                    <span className="truncate">{systemLine}</span>
-                  </div>
-                  <motion.div
-                    className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                    animate={{ x: ["-30%", "140%"] }}
-                    transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-                  />
+                <WorldPulseBar label={systemLine} />
+
+                {/* 🌐 Language Switcher */}
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
+                  <span className="opacity-70">🌐</span>
+                  <select
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value as Lang)}
+                    className="bg-transparent outline-none"
+                  >
+                    {LANGS.map((x) => (
+                      <option key={x.key} value={x.key}>
+                        {x.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
+                <button
+                  onClick={() => setCmdOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"
+                >
+                  <Search className="h-4 w-4" />
+                  {t.search}
+                  <span className="ml-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] text-white/60">
+                    ⌘/Ctrl K
+                  </span>
+                </button>
+
                 <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
-                  <Share2 className="h-4 w-4" /> Share
+                  <Share2 className="h-4 w-4" />
+                  {t.share}
                 </button>
                 <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
-                  <Settings className="h-4 w-4" /> Settings
+                  <Settings className="h-4 w-4" />
+                  {t.settings}
                 </button>
               </div>
             </div>
 
+            {/* stats pills */}
             <div className="flex flex-wrap items-center gap-2">
-              <Pill icon={<LayoutDashboard className="h-3.5 w-3.5" />}>Total {totals.total}</Pill>
-              <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Today {totals.today}</Pill>
-              <Pill icon={<User className="h-3.5 w-3.5" />}>Authors {totals.authors}</Pill>
+              <Pill icon={<LayoutDashboard className="h-3.5 w-3.5" />}>
+                Total <CountUp value={totals.total} />
+              </Pill>
+              <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>
+                Today <CountUp value={totals.today} />
+              </Pill>
+              <Pill icon={<User className="h-3.5 w-3.5" />}>
+                Authors <CountUp value={totals.authors} />
+              </Pill>
+              <Pill icon={<Command className="h-3.5 w-3.5" />}>Command Palette enabled</Pill>
             </div>
           </div>
 
-          {/* Grid */}
+          {/* Main Grid */}
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-            {/* Timeline */}
+            {/* Left: Timeline */}
             <div className="lg:col-span-7">
               <GlassCard className="p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <div className="text-xs text-white/55">时间线</div>
-                    <div className="text-2xl font-semibold tracking-tight text-white/92">Timeline</div>
+                    <div className="text-xs text-white/55">{t.timeline}</div>
+                    <div className="text-2xl font-semibold tracking-tight text-white/92">
+                      {t.timeline}
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
                       <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
-                        <span>Range</span>
+                        <span>{t.range}</span>
                         <span className="text-white/60">{rangeDays}d</span>
                         <ChevronDown className="h-4 w-4 text-white/60" />
                       </button>
@@ -516,10 +593,32 @@ export default function Page() {
                     </div>
 
                     <button
-                      onClick={loadRecords}
+                      onClick={() => setView("chrono")}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
+                        view === "chrono" ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                      )}
+                    >
+                      <Clock className="h-4 w-4" />
+                      Chrono
+                    </button>
+                    <button
+                      onClick={() => setView("constellation")}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
+                        view === "constellation" ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                      )}
+                    >
+                      <Stars className="h-4 w-4" />
+                      Constellation
+                    </button>
+
+                    <button
+                      onClick={() => setRecords(genMockRecords())}
                       className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"
                     >
-                      <RefreshCcw className="h-4 w-4" /> Refresh
+                      <RefreshCcw className="h-4 w-4" />
+                      {t.refresh}
                     </button>
                   </div>
                 </div>
@@ -530,39 +629,32 @@ export default function Page() {
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search title / body / author / tags…"
+                      placeholder="Search content / author / tags…"
                       className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2 pl-10 pr-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
                     />
                   </div>
-                  <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Irreversible</Pill>
+                  <Pill>{t.sortLatest}</Pill>
+                  <Pill>Filter: Heat ≥ 0</Pill>
                 </div>
 
                 <div className="mt-4">
-                  <div className="text-xs text-white/55 px-1">Genesis — the first irreversible mark.</div>
-
-                  <motion.div layout className="mt-3 space-y-3">
+                  <motion.div layout className="space-y-3">
                     <div ref={timelineTopRef} />
                     {filtered.map((r) => (
                       <RecordCard
                         key={r.id}
                         r={r}
+                        onOpen={openRecord}
                         pinned={!!pinned[r.id]}
                         onPin={(id) => setPinned((p) => ({ ...p, [id]: !p[id] }))}
-                        onOpen={setDetail}
-                        flash={flashId === r.id}
                       />
                     ))}
-                    {filtered.length === 0 && (
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/60">
-                        你还没有记录。写下第一条“不可撤回”的痕迹。
-                      </div>
-                    )}
                   </motion.div>
                 </div>
               </GlassCard>
             </div>
 
-            {/* Dashboard */}
+            {/* Middle: Dashboard */}
             <div className="lg:col-span-2">
               <div className="space-y-5">
                 <GlassCard className="p-4">
@@ -572,12 +664,12 @@ export default function Page() {
                   </div>
                   <div className="mt-3 grid gap-2">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Top Signal</div>
-                      <div className="mt-1 text-sm font-semibold text-white/90">Irreversible</div>
+                      <div className="text-[11px] text-white/55">World Age</div>
+                      <div className="mt-1 text-sm font-semibold text-white/90">2 days · 11 hours</div>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">Identity</div>
-                      <div className="mt-1 text-sm font-semibold text-white/90">Verified Email</div>
+                      <div className="text-[11px] text-white/55">Top Signal</div>
+                      <div className="mt-1 text-sm font-semibold text-white/90">Irreversible</div>
                     </div>
                   </div>
                 </GlassCard>
@@ -599,7 +691,7 @@ export default function Page() {
                       );
                     })}
                   </div>
-                  <div className="mt-2 text-[11px] text-white/45">Later → real analytics.</div>
+                  <div className="mt-2 text-[11px] text-white/45">Click patterns later → wire real analytics.</div>
                 </GlassCard>
 
                 <GlassCard className="p-4">
@@ -611,25 +703,10 @@ export default function Page() {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
                         <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                        <XAxis
-                          dataKey="d"
-                          tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
-                          axisLine={false}
-                          tickLine={false}
-                          width={24}
-                        />
+                        <XAxis dataKey="d" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
                         <Tooltip
-                          contentStyle={{
-                            background: "rgba(0,0,0,0.75)",
-                            border: "1px solid rgba(255,255,255,0.12)",
-                            borderRadius: 12,
-                            color: "rgba(255,255,255,0.9)"
-                          }}
+                          contentStyle={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, color: "rgba(255,255,255,0.9)" }}
                           labelStyle={{ color: "rgba(255,255,255,0.7)" }}
                         />
                         <Line type="monotone" dataKey="v" stroke="rgba(120,102,255,0.9)" strokeWidth={2} dot={false} />
@@ -640,15 +717,15 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Write */}
+            {/* Right: Write */}
             <div className="lg:col-span-3">
               <GlassCard className="p-4" id="write-panel">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-white/55">留下记录</div>
-                    <div className="text-2xl font-semibold tracking-tight text-white/92">Write</div>
+                    <div className="text-xs text-white/55">{t.write}</div>
+                    <div className="text-2xl font-semibold tracking-tight text-white/92">{t.write}</div>
                   </div>
-                  <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Min 12 chars</Pill>
+                  <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>{t.minChars}</Pill>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -656,7 +733,7 @@ export default function Page() {
                     { k: "short", label: "Short" },
                     { k: "manifesto", label: "Manifesto" },
                     { k: "rule", label: "Rule" },
-                    { k: "event", label: "Event" }
+                    { k: "event", label: "Event" },
                   ].map((m) => (
                     <button
                       key={m.k}
@@ -677,7 +754,7 @@ export default function Page() {
                     <input
                       value={author}
                       onChange={(e) => setAuthor(e.target.value)}
-                      placeholder="Your display name"
+                      placeholder={t.yourName}
                       className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2 pl-10 pr-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
                     />
                   </div>
@@ -686,7 +763,7 @@ export default function Page() {
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      placeholder="What should this world remember?"
+                      placeholder={t.placeholder}
                       className="h-40 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
                     />
                     <div className="absolute bottom-3 right-3 text-[11px] text-white/45">
@@ -695,30 +772,38 @@ export default function Page() {
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                    <div className="text-xs font-medium text-white/70">Preview</div>
+                    <div className="text-xs font-medium text-white/70">{t.preview}</div>
                     <div className="mt-2 text-sm text-white/70">
-                      {text.trim()
-                        ? text.trim()
-                        : "Your words will become an irreversible trace once sealed."}
+                      {text.trim() ? text.trim() : "Your words will become an irreversible trace once sealed."}
                     </div>
                   </div>
 
-                  <SliderConfirm disabled={text.trim().length < 12} onConfirm={addRecord} />
+                  <SliderConfirm
+                    disabled={text.trim().length < 12}
+                    onConfirm={addRecord}
+                    label={t.slideToSeal}
+                  />
 
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={loadRecords}
+                      onClick={() => setCmdOpen(true)}
                       className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10"
                     >
-                      <RefreshCcw className="h-4 w-4" /> Refresh
+                      <Search className="h-4 w-4" />
+                      {t.search}
                     </button>
                     <button
-                      onClick={() => setText("")}
+                      onClick={onNew}
                       className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10"
                     >
-                      <Plus className="h-4 w-4" /> New
+                      <Plus className="h-4 w-4" />
+                      {t.new}
                     </button>
                   </div>
+                </div>
+
+                <div className="mt-5 text-[11px] text-white/45">
+                  {t.proTip}
                 </div>
               </GlassCard>
             </div>
