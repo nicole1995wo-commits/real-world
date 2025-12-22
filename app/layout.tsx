@@ -1,9 +1,10 @@
+import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Real World",
   description: "A real, irreversible world. What you leave here will remain.",
-  metadataBase: new URL("https://real-world.vercel.app"), // 以后你换自定义域名，再改这里
+  metadataBase: new URL("https://worldisreal.com"), // 你域名生效后就用这个
   openGraph: {
     title: "Real World",
     description: "A real, irreversible world. What you leave here will remain.",
@@ -18,16 +19,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily: "system-ui",
-          background: "white",
-        }}
-      >
-        {children}
-      </body>
+    <html lang="zh-CN">
+      <body>{children}</body>
     </html>
   );
 }
