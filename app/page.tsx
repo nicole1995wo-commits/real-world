@@ -1,412 +1,1203 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "../lib/supabase";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Sparkles,
+  Wand2,
+  Share2,
+  Settings,
+  Plus,
+  RefreshCcw,
+  Globe,
+  Radar,
+  Clock,
+  Stars,
+  LayoutDashboard,
+  Command,
+  Pin,
+  Flame,
+  Hash,
+  User,
+  CheckCircle2,
+  ChevronDown,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
-// World start (Day 0). UTC keeps the day consistent globally.
-const WORLD_START = new Date("2025-12-20T00:00:00Z");
-
-function getWorldDay(now = new Date()) {
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const diff = now.getTime() - WORLD_START.getTime();
-  return Math.max(0, Math.floor(diff / msPerDay));
-}
-
-function mood(day: number) {
-  if (day === 0) return "Genesis — the first irreversible mark.";
-  if (day === 1) return "Echo — the world begins to respond.";
-  if (day <= 3) return "Formation — patterns start to appear.";
-  if (day <= 7) return "Habit — people return, not for rewards, but for meaning.";
-  if (day <= 14) return "Memory — history starts to feel heavy.";
-  return "Continuity — the world keeps moving, with or without you.";
-}
+/**
+ * Highest-end "World" page
+ * - Next.js + Tailwind
+ * - Framer Motion for premium motion
+ * - Recharts for tiny dashboard charts
+ *
+ * You can later wire real API data to replace mocked data.
+ */
 
 type RecordItem = {
   id: string;
-  content: string;
-  author: string;
   day: number;
-  created_at: string;
+  title: string;
+  body: string;
+  author: string;
+  ts: string;
+  heat: number; // 0-100
+  tags: string[];
 };
 
-// anti-spam (client)
-const MIN_CHARS = 12;
-const MIN_INTERVAL_SECONDS = 60;
-const COOLDOWN_SECONDS = 5;
+type ViewMode = "chrono" | "constellation";
 
-function canSubmitToday(day: number) {
-  try {
-    const v = localStorage.getItem("realworld:last_submit_day");
-    if (!v) return true;
-    return Number(v) !== day;
-  } catch {
-    return true;
-  }
-}
-function markSubmittedToday(day: number) {
-  try {
-    localStorage.setItem("realworld:last_submit_day", String(day));
-  } catch {}
-}
-function canSubmitByInterval() {
-  try {
-    const v = localStorage.getItem("realworld:last_submit_ts");
-    if (!v) return true;
-    const last = Number(v);
-    return Date.now() - last >= MIN_INTERVAL_SECONDS * 1000;
-  } catch {
-    return true;
-  }
-}
-function markSubmitTimestamp() {
-  try {
-    localStorage.setItem("realworld:last_submit_ts", String(Date.now()));
-  } catch {}
-}
-function normalizeText(s: string) {
-  return s.trim().replace(/\s+/g, " ").toLowerCase();
-}
-function isDuplicateToday(day: number, content: string) {
-  try {
-    const key = `realworld:dup:${day}`;
-    const v = localStorage.getItem(key);
-    if (!v) return false;
-    return v === normalizeText(content);
-  } catch {
-    return false;
-  }
-}
-function markDuplicateToday(day: number, content: string) {
-  try {
-    const key = `realworld:dup:${day}`;
-    localStorage.setItem(key, normalizeText(content));
-  } catch {}
+function cn(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
 }
 
-function formatTime(ts: string) {
-  try {
-    return new Date(ts).toLocaleString();
-  } catch {
-    return ts;
-  }
-}
-
-export default function Home() {
-  const todayDay = getWorldDay();
-
-  const [records, setRecords] = useState<RecordItem[]>([]);
-  const [loadingRecords, setLoadingRecords] = useState(false);
-
-  const [search, setSearch] = useState("");
-  const [dayFilter, setDayFilter] = useState("");
-  const [authorFilter, setAuthorFilter] = useState("");
-  const [onlyToday, setOnlyToday] = useState(false);
-  const [onlyGenesis, setOnlyGenesis] = useState(false);
-  const [sortNewest, setSortNewest] = useState(true);
-  const [daysToRender, setDaysToRender] = useState(14);
-
-  const [author, setAuthor] = useState("");
-  const [content, setContent] = useState("");
-  const [honeypot, setHoneypot] = useState("");
-  const [allowedToday, setAllowedToday] = useState(true);
-
-  const [cooldownEnabled, setCooldownEnabled] = useState(true);
-  const [cooldownLeft, setCooldownLeft] = useState(0);
-  const cooldownTimer = useRef<number | null>(null);
-
-  const [submitting, setSubmitting] = useState(false);
-
-  const [toast, setToast] = useState<{ title: string; msg: string } | null>(null);
-  const toastTimer = useRef<number | null>(null);
-
-  function showToast(title: string, msg: string) {
-    setToast({ title, msg });
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
-  }
-
+function useHotkeys(onCommand: () => void) {
   useEffect(() => {
-    fetchRecords();
-    setAllowedToday(canSubmitToday(todayDay));
-    return () => {
-      if (cooldownTimer.current) window.clearInterval(cooldownTimer.current);
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toLowerCase().includes("mac");
+      const cmdk = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (cmdk) {
+        e.preventDefault();
+        onCommand();
+      }
+      if (e.key === "Escape") onCommand(); // toggles close if open; fine for MVP
     };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onCommand]);
+}
+
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
+
+function formatUTC(ts: string) {
+  // keep simple
+  return ts.replace("T", " ").replace("Z", " UTC");
+}
+
+function pseudoHeatmap(days = 21) {
+  // GitHub-like blocks
+  const arr = Array.from({ length: days }, (_, i) => ({
+    d: i + 1,
+    v: Math.floor(Math.pow(Math.random(), 0.7) * 8),
+  }));
+  return arr;
+}
+
+function genMockRecords(): RecordItem[] {
+  const authors = ["Founder", "Tester", "Observer", "Archivist"];
+  const tagsPool = ["truth", "rule", "genesis", "memory", "signal", "warning", "future"];
+  const now = Date.now();
+
+  return Array.from({ length: 18 }).map((_, idx) => {
+    const day = idx < 3 ? 0 : Math.floor(idx / 2);
+    const author = authors[idx % authors.length];
+    const heat = clamp(Math.floor(Math.random() * 110), 10, 100);
+    const tags = Array.from({ length: 2 + (idx % 2) }, () => tagsPool[Math.floor(Math.random() * tagsPool.length)]);
+    const titleCandidates = [
+      "Genesis — the first irreversible mark.",
+      "We once began from this very moment.",
+      "A rule that survived the night.",
+      "Signal detected beyond the usual noise.",
+      "Write something that outlives the timeline.",
+      "The world remembers. You don't need to.",
+      "If it matters, make it irreversible.",
+    ];
+    const bodyCandidates = [
+      "This is not a note. It’s a trace.",
+      "You can’t undo reality. You can only design it.",
+      "Truth is the only compounding asset that never decays.",
+      "Write like the world is watching. Because it is.",
+      "Systems are memories with teeth.",
+    ];
+
+    const ts = new Date(now - idx * 1000 * 60 * (20 + Math.random() * 50)).toISOString().replace(".000", "");
+    return {
+      id: `r_${idx}_${Math.random().toString(16).slice(2)}`,
+      day,
+      title: titleCandidates[idx % titleCandidates.length],
+      body: bodyCandidates[idx % bodyCandidates.length],
+      author,
+      ts,
+      heat,
+      tags,
+    };
+  });
+}
+
+function CountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const start = display;
+    const end = value;
+    const t0 = performance.now();
+    const dur = 700;
+    let raf = 0;
+
+    const tick = (t: number) => {
+      const p = clamp((t - t0) / dur, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(start + (end - start) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [value]);
+
+  return <span>{display.toLocaleString()}</span>;
+}
+
+function Pill({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+function GlassCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl",
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.06] to-transparent" />
+      {children}
+    </div>
+  );
+}
+
+function AmbientBackground() {
+  // lightweight: gradient + noise overlay + moving glow
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(1200px_700px_at_20%_10%,rgba(120,102,255,0.18),transparent_60%),radial-gradient(900px_600px_at_80%_20%,rgba(0,210,255,0.12),transparent_55%),radial-gradient(900px_600px_at_50%_90%,rgba(255,0,160,0.08),transparent_55%)]" />
+      <motion.div
+        className="absolute -inset-40 opacity-40"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+        style={{
+          background:
+            "conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(120,102,255,0.16), rgba(0,210,255,0.10), rgba(255,0,160,0.08), rgba(255,255,255,0.0))",
+          filter: "blur(70px)",
+        }}
+      />
+      {/* Noise */}
+      <div
+        className="absolute inset-0 opacity-[0.06] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")",
+        }}
+      />
+      {/* Particles */}
+      <div className="absolute inset-0">
+        {Array.from({ length: 26 }).map((_, i) => (
+          <motion.span
+            key={i}
+            className="absolute h-1 w-1 rounded-full bg-white/30"
+            initial={{
+              x: `${Math.random() * 100}%`,
+              y: `${Math.random() * 100}%`,
+              opacity: 0.1 + Math.random() * 0.5,
+              scale: 0.6 + Math.random() * 1.2,
+            }}
+            animate={{
+              y: ["0%", "-12%"],
+              opacity: [0.2, 0.6, 0.2],
+            }}
+            transition={{
+              duration: 8 + Math.random() * 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: Math.random() * 4,
+            }}
+            style={{ transform: "translateZ(0)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorldPulseBar({ label }: { label: string }) {
+  return (
+    <div className="relative w-[260px] overflow-hidden rounded-full border border-white/10 bg-white/5 px-3 py-2">
+      <div className="flex items-center gap-2 text-xs text-white/80">
+        <Radar className="h-3.5 w-3.5 text-white/70" />
+        <span className="truncate">{label}</span>
+      </div>
+      <motion.div
+        className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        animate={{ x: ["-30%", "140%"] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
+function CommandPalette({
+  open,
+  onClose,
+  records,
+  onJump,
+  onNew,
+}: {
+  open: boolean;
+  onClose: () => void;
+  records: RecordItem[];
+  onJump: (id: string) => void;
+  onNew: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    setAllowedToday(canSubmitToday(todayDay));
-  }, [todayDay]);
-
-  async function fetchRecords() {
-    setLoadingRecords(true);
-    const { data, error } = await supabase.from("records").select("*").order("created_at", { ascending: true });
-    setLoadingRecords(false);
-    if (error) {
-      console.error(error);
-      showToast("Load failed", "Cannot fetch records. Check Supabase/RLS.");
-      return;
+    if (open) {
+      setQ("");
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
-    setRecords((data || []) as RecordItem[]);
-  }
+  }, [open]);
 
-  function startCooldown(seconds: number) {
-    setCooldownLeft(seconds);
-    if (cooldownTimer.current) window.clearInterval(cooldownTimer.current);
-    cooldownTimer.current = window.setInterval(() => {
-      setCooldownLeft((v) => {
-        if (v <= 1) {
-          if (cooldownTimer.current) window.clearInterval(cooldownTimer.current);
-          cooldownTimer.current = null;
-          return 0;
-        }
-        return v - 1;
-      });
-    }, 1000);
-  }
+  const items = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    const base = records
+      .filter((r) => {
+        if (!qq) return true;
+        return (
+          r.title.toLowerCase().includes(qq) ||
+          r.body.toLowerCase().includes(qq) ||
+          r.author.toLowerCase().includes(qq) ||
+          r.tags.some((t) => t.toLowerCase().includes(qq))
+        );
+      })
+      .slice(0, 8);
 
-  async function submitRecord() {
-    if (honeypot.trim()) return showToast("Blocked", "Submission blocked.");
-    if (!author.trim() || !content.trim()) return showToast("Missing", "Please fill your name and record.");
-    if (content.trim().length < MIN_CHARS) return showToast("Too short", `Minimum ${MIN_CHARS} characters.`);
-    if (!allowedToday) return showToast("Daily limit", "You already submitted today (this browser).");
-    if (!canSubmitByInterval()) return showToast("Slow down", `Wait ${MIN_INTERVAL_SECONDS}s between submissions.`);
-    if (isDuplicateToday(todayDay, content)) return showToast("Duplicate", "Same day, same content detected.");
-    if (cooldownEnabled && cooldownLeft > 0) return showToast("Cooldown", `Wait ${cooldownLeft}s.`);
-
-    if (cooldownEnabled) startCooldown(COOLDOWN_SECONDS);
-
-    setSubmitting(true);
-    const { error } = await supabase.from("records").insert({
-      content: content.trim(),
-      author: author.trim(),
-      day: todayDay,
-    });
-    setSubmitting(false);
-
-    if (error) {
-      console.error(error);
-      showToast("Submit failed", "Try again.");
-      return;
-    }
-
-    markSubmittedToday(todayDay);
-    markSubmitTimestamp();
-    markDuplicateToday(todayDay, content);
-    setAllowedToday(false);
-    setContent("");
-    showToast("Recorded", "Your action has become part of the world.");
-    await fetchRecords();
-  }
-
-  function resetFilters() {
-    setSearch("");
-    setDayFilter("");
-    setAuthorFilter("");
-    setOnlyToday(false);
-    setOnlyGenesis(false);
-    setSortNewest(true);
-    setDaysToRender(14);
-  }
-
-  async function copyShareLink() {
-    await navigator.clipboard.writeText(window.location.href);
-    showToast("Copied", "Share link copied.");
-  }
-
-  const filteredRecords = useMemo(() => {
-    let list = [...records];
-
-    // sort
-    list.sort((a, b) => {
-      const ta = new Date(a.created_at).getTime();
-      const tb = new Date(b.created_at).getTime();
-      return sortNewest ? tb - ta : ta - tb;
-    });
-
-    const s = search.trim().toLowerCase();
-    if (s) list = list.filter((r) => r.content.toLowerCase().includes(s) || r.author.toLowerCase().includes(s) || String(r.day).includes(s));
-
-    if (authorFilter.trim()) {
-      const af = authorFilter.trim().toLowerCase();
-      list = list.filter((r) => r.author.toLowerCase() === af);
-    }
-
-    if (onlyGenesis) list = list.filter((r) => r.day === 0);
-    if (onlyToday) list = list.filter((r) => r.day === todayDay);
-
-    if (dayFilter.trim() !== "") {
-      const d = Number(dayFilter);
-      if (!Number.isNaN(d)) list = list.filter((r) => r.day === d);
-    }
-
-    return list;
-  }, [records, search, authorFilter, onlyGenesis, onlyToday, dayFilter, sortNewest, todayDay]);
-
-  const stats = useMemo(() => {
-    const total = records.length;
-    const todayCount = records.filter((r) => r.day === todayDay).length;
-    const authors = new Set(records.map((r) => r.author.trim()).filter(Boolean)).size;
-    return { total, todayCount, authors };
-  }, [records, todayDay]);
-
-  const { recordsByDay, sortedDaysRendered, hasMoreDays } = useMemo(() => {
-    const map: Record<number, RecordItem[]> = {};
-    for (const r of filteredRecords) {
-      map[r.day] = map[r.day] || [];
-      map[r.day].push(r);
-    }
-    const allDays = Object.keys(map).map(Number);
-    const nonZero = allDays.filter((d) => d !== 0).sort((a, b) => b - a);
-    const allSorted = (map[0] ? [0] : []).concat(nonZero);
-    const renderedNonZero = nonZero.slice(0, Math.max(0, daysToRender));
-    const rendered = (map[0] ? [0] : []).concat(renderedNonZero);
-    return { recordsByDay: map, sortedDaysRendered: rendered, hasMoreDays: rendered.length < allSorted.length };
-  }, [filteredRecords, daysToRender]);
+    return base;
+  }, [q, records]);
 
   return (
-    <div className="container">
-      <div className="nav">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>现实世界</h1>
-            <p>今天：第 {todayDay} 天 · 世界开始时间：{WORLD_START.toISOString().slice(0,19).replace("T"," ")} UTC</p>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={onClose}
+        >
+          <motion.div
+            className="w-full max-w-2xl"
+            initial={{ y: 12, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 12, opacity: 0, scale: 0.98 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <GlassCard className="overflow-hidden">
+              <div className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+                <Command className="h-4 w-4 text-white/70" />
+                <input
+                  ref={inputRef}
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search records, authors, tags…"
+                  className="w-full bg-transparent text-sm text-white/90 placeholder:text-white/35 outline-none"
+                />
+                <kbd className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] text-white/60">
+                  ESC
+                </kbd>
+              </div>
+
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    onNew();
+                    onClose();
+                  }}
+                  className="mb-2 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-white/85 hover:bg-white/[0.06]"
+                >
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-white/70" />
+                    <span>New record</span>
+                  </div>
+                  <span className="text-xs text-white/45">Enter</span>
+                </button>
+
+                <div className="space-y-1">
+                  {items.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        onJump(r.id);
+                        onClose();
+                      }}
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left hover:bg-white/[0.06]"
+                    >
+                      <div className="mt-0.5 h-2 w-2 rounded-full bg-white/50" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white/90">{r.title}</span>
+                          <span className="text-xs text-white/40">Day {r.day}</span>
+                        </div>
+                        <div className="line-clamp-1 text-xs text-white/50">{r.body}</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {r.tags.slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60"
+                            >
+                              <Hash className="h-3 w-3" />
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-xs text-white/35">{r.author}</div>
+                    </button>
+                  ))}
+                  {items.length === 0 && (
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-6 text-center text-sm text-white/50">
+                      No results.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function SliderConfirm({
+  onConfirm,
+  disabled,
+  label = "Slide to seal (irreversible)",
+}: {
+  onConfirm: () => void;
+  disabled?: boolean;
+  label?: string;
+}) {
+  const [x, setX] = useState(0);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const handleRef = useRef<HTMLDivElement | null>(null);
+
+  const maxX = () => {
+    const track = trackRef.current;
+    const handle = handleRef.current;
+    if (!track || !handle) return 260;
+    return Math.max(0, track.clientWidth - handle.clientWidth);
+  };
+
+  useEffect(() => {
+    setX(0);
+  }, [disabled]);
+
+  return (
+    <div className={cn("select-none", disabled && "opacity-60")}>
+      <div
+        ref={trackRef}
+        className="relative h-12 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]"
+      >
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-[rgba(120,102,255,0.25)] via-[rgba(0,210,255,0.18)] to-[rgba(255,0,160,0.14)]"
+          animate={{ opacity: [0.35, 0.6, 0.35] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-white/75">
+          {label}
+        </div>
+
+        <motion.div
+          ref={handleRef}
+          className="absolute left-1 top-1 flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-black/40 backdrop-blur"
+          drag={disabled ? false : "x"}
+          dragConstraints={{ left: 0, right: maxX() }}
+          dragElastic={0}
+          onDrag={(e, info) => setX(info.point.x)}
+          onDragEnd={(e, info) => {
+            const right = maxX();
+            if (info.offset.x >= right * 0.82) {
+              onConfirm();
+              setX(0);
+            } else {
+              setX(0);
+            }
+          }}
+          animate={{ x: 0 }}
+          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        >
+          <CheckCircle2 className="h-5 w-5 text-white/80" />
+        </motion.div>
+      </div>
+      <div className="mt-2 text-[11px] text-white/45">
+        Tip: ⌘/Ctrl + K opens command palette.
+      </div>
+    </div>
+  );
+}
+
+function RecordCard({
+  r,
+  onOpen,
+  pinned,
+  onPin,
+}: {
+  r: RecordItem;
+  onOpen: (r: RecordItem) => void;
+  pinned: boolean;
+  onPin: (id: string) => void;
+}) {
+  return (
+    <motion.div
+      layout
+      className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.055]"
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-1 ring-white/10 group-hover:opacity-100" />
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-white/50">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              Day {r.day}
+            </span>
+            <span>·</span>
+            <span>{formatUTC(r.ts)}</span>
+          </div>
+          <div className="mt-2 text-[15px] font-semibold leading-snug text-white/90">
+            {r.title}
           </div>
         </div>
-        <div className="pills">
-          <span className="pill">总记录 {stats.total}</span>
-          <span className="pill">今天 {stats.todayCount}</span>
-          <span className="pill">作者 {stats.authors}</span>
-          <button className="btn btnGhost" onClick={copyShareLink}>复制分享链接</button>
-        </div>
+        <button
+          onClick={() => onPin(r.id)}
+          className={cn(
+            "rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-white/70 hover:bg-white/10",
+            pinned && "border-white/20 bg-white/10 text-white"
+          )}
+          title="Pin"
+        >
+          <Pin className="h-4 w-4" />
+        </button>
       </div>
 
-      <div style={{ height: 14 }} />
+      <div className="mt-2 line-clamp-2 text-sm text-white/60">{r.body}</div>
 
-      <div className="grid">
-        {/* Left: timeline */}
-        <div className="card">
-          <div className="cardHeader">
-            <div>
-              <p className="cardTitle">时间线</p>
-              <p className="cardValue">Timeline</p>
-            </div>
-            <div className="toolbar">
-              <select className="select" value={String(daysToRender)} onChange={(e) => setDaysToRender(Number(e.target.value))}>
-                <option value="7">渲染 7 天</option>
-                <option value="14">渲染 14 天</option>
-                <option value="30">渲染 30 天</option>
-                <option value="9999">全部</option>
-              </select>
-              <button className="btn" onClick={fetchRecords} disabled={loadingRecords}>
-                {loadingRecords ? "刷新中…" : "刷新"}
-              </button>
-            </div>
-          </div>
-          <div className="cardBody">
-            <div className="toolbar" style={{ marginBottom: 10 }}>
-              <input className="input" style={{ minWidth: 220 }} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索：内容/作者" />
-              <input className="input" style={{ width: 120 }} value={dayFilter} onChange={(e) => setDayFilter(e.target.value)} placeholder="过滤日：如 0, 1" />
-              <input className="input" style={{ width: 160 }} value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)} placeholder="筛选作者（精确）" />
-              <button className="btn" onClick={() => setOnlyToday(v => !v)}>今天</button>
-              <button className="btn" onClick={() => setOnlyGenesis(v => !v)}>创世纪</button>
-              <button className="btn" onClick={() => setSortNewest(v => !v)}>{sortNewest ? "最新" : "最老"}</button>
-              <button className="btn" onClick={resetFilters}>重置</button>
-            </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
+          <User className="h-3 w-3" />
+          {r.author}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
+          <Flame className="h-3 w-3" />
+          Heat {r.heat}
+        </span>
+        {r.tags.slice(0, 3).map((t) => (
+          <span
+            key={t}
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60"
+          >
+            <Hash className="h-3 w-3" />
+            {t}
+          </span>
+        ))}
+        <button
+          onClick={() => onOpen(r)}
+          className="ml-auto rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+        >
+          Open
+        </button>
+      </div>
+    </motion.div>
+  );
+}
 
-            <details>
-              <summary className="btn" style={{ display: "inline-block" }}>世界规则</summary>
-              <div style={{ marginTop: 10, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 }}>
-                <p><b>这是什么？</b><br/>这是一个真实的世界。你在这里留下的一切都会被记录，并且不可逆。</p>
-                <p><b>三条宪法</b></p>
-                <ol>
-                  <li><b>不可撤回：</b>提交之后，无法修改或删除。</li>
-                  <li><b>只看行为：</b>不关心你是谁，只关心你做了什么。</li>
-                  <li><b>影响即存在：</b>唯一重要的是，你是否真的改变了这个世界。</li>
-                </ol>
-                <p><b>如果你犹豫——先别写。</b></p>
+function DetailDrawer({
+  open,
+  record,
+  onClose,
+}: {
+  open: boolean;
+  record: RecordItem | null;
+  onClose: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && record && (
+        <motion.div
+          className="fixed inset-0 z-40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-black/55" onMouseDown={onClose} />
+          <motion.div
+            className="absolute right-0 top-0 h-full w-full max-w-xl"
+            initial={{ x: 40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 40, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
+          >
+            <div className="h-full border-l border-white/10 bg-black/60 backdrop-blur-xl">
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div className="flex items-center gap-2 text-white/80">
+                  <Sparkles className="h-4 w-4 text-white/70" />
+                  <span className="text-sm">Record</span>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75 hover:bg-white/10"
+                >
+                  Close
+                </button>
               </div>
-            </details>
 
-            <hr className="hr" />
-
-            {hasMoreDays && (
-              <div className="entry" style={{ marginTop: 0 }}>
-                <div className="entryMeta">提示：更多天存在但未渲染。可把“渲染天数”调大。</div>
-              </div>
-            )}
-
-            {sortedDaysRendered.map((day) => (
-              <div key={day} className="dayBlock">
-                <div className="dayHead">
-                  <h3 className="dayTitle">{day === 0 ? "第0天（创世纪）" : `第${day}天`}</h3>
-                  <p className="daySub">{mood(day)}</p>
+              <div className="p-5">
+                <div className="flex items-center gap-2 text-xs text-white/55">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    Day {record.day}
+                  </span>
+                  <span>·</span>
+                  <span>{formatUTC(record.ts)}</span>
                 </div>
 
-                {(recordsByDay[day] || []).map((r) => (
-                  <div key={r.id} className="entry">
-                    <div className="entryTop">
-                      <span className="badge">Day {r.day}</span>
-                      <span className="entryMeta">{formatTime(r.created_at)}</span>
-                    </div>
-                    <p className="entryText">{r.content}</p>
-                    <div className="entryMeta">
-                      — <button className="btnGhost" style={{ border: "none", color: "rgba(255,255,255,0.86)", cursor: "pointer", textDecoration: "underline" }} onClick={() => setAuthorFilter(r.author)}>{r.author}</button>
-                    </div>
+                <div className="mt-3 text-2xl font-semibold leading-tight text-white/92">
+                  {record.title}
+                </div>
+
+                <div className="mt-3 text-sm leading-relaxed text-white/68">
+                  {record.body}
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Pill icon={<User className="h-3.5 w-3.5" />}>{record.author}</Pill>
+                  <Pill icon={<Flame className="h-3.5 w-3.5" />}>Heat {record.heat}</Pill>
+                  {record.tags.map((t) => (
+                    <Pill key={t} icon={<Hash className="h-3.5 w-3.5" />}>
+                      {t}
+                    </Pill>
+                  ))}
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                  <button className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10">
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </button>
+                  <button className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10">
+                    <Wand2 className="h-4 w-4" />
+                    Remix
+                  </button>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs font-medium text-white/70">System Note</div>
+                  <div className="mt-1 text-xs text-white/50">
+                    This trace is irreversible. It becomes part of the world state once sealed.
                   </div>
-                ))}
+                </div>
               </div>
-            ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ConstellationView({
+  records,
+  onOpen,
+}: {
+  records: RecordItem[];
+  onOpen: (r: RecordItem) => void;
+}) {
+  // place points deterministically-ish
+  const points = useMemo(() => {
+    return records.map((r, idx) => {
+      const seed = (idx + 1) * 99991;
+      const x = (Math.sin(seed) * 0.5 + 0.5) * 92 + 4;
+      const y = (Math.cos(seed * 1.3) * 0.5 + 0.5) * 86 + 6;
+      const size = 4 + (r.heat / 100) * 10;
+      return { r, x, y, size };
+    });
+  }, [records]);
+
+  return (
+    <div className="relative h-[560px] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+      <div className="absolute inset-0 bg-[radial-gradient(600px_380px_at_40%_25%,rgba(120,102,255,0.18),transparent_60%),radial-gradient(520px_320px_at_70%_55%,rgba(0,210,255,0.12),transparent_60%)]" />
+      <motion.div
+        className="absolute inset-0"
+        animate={{ opacity: [0.85, 1, 0.85] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* faint grid */}
+      <div className="absolute inset-0 opacity-[0.18]">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:36px_36px]" />
+      </div>
+
+      {/* connections */}
+      <svg className="absolute inset-0 h-full w-full">
+        {points.slice(0, 10).map((p, i) => {
+          const q = points[(i + 3) % points.length];
+          return (
+            <line
+              key={p.r.id}
+              x1={`${p.x}%`}
+              y1={`${p.y}%`}
+              x2={`${q.x}%`}
+              y2={`${q.y}%`}
+              stroke="rgba(255,255,255,0.10)"
+              strokeWidth="1"
+            />
+          );
+        })}
+      </svg>
+
+      {/* points */}
+      {points.map((p) => (
+        <motion.button
+          key={p.r.id}
+          className="absolute rounded-full border border-white/15 bg-white/20 backdrop-blur"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            transform: "translate(-50%, -50%)",
+          }}
+          whileHover={{ scale: 1.25 }}
+          onClick={() => onOpen(p.r)}
+          title={p.r.title}
+        >
+          <motion.span
+            className="absolute inset-0 rounded-full"
+            animate={{ boxShadow: ["0 0 0 rgba(120,102,255,0.0)", "0 0 18px rgba(120,102,255,0.55)", "0 0 0 rgba(120,102,255,0.0)"] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 1.5 }}
+          />
+        </motion.button>
+      ))}
+
+      <div className="absolute left-4 top-4 flex items-center gap-2">
+        <Pill icon={<Stars className="h-3.5 w-3.5" />}>Constellation</Pill>
+        <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Click stars to open</Pill>
+      </div>
+    </div>
+  );
+}
+
+export default function Page() {
+  const [records, setRecords] = useState<RecordItem[]>(() => genMockRecords());
+  const [view, setView] = useState<ViewMode>("chrono");
+  const [rangeDays, setRangeDays] = useState(14);
+  const [query, setQuery] = useState("");
+  const [detail, setDetail] = useState<RecordItem | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [pinned, setPinned] = useState<Record<string, boolean>>({});
+  const [writeMode, setWriteMode] = useState<"short" | "manifesto" | "rule" | "event">("manifesto");
+  const [author, setAuthor] = useState("");
+  const [text, setText] = useState("");
+  const [systemLine, setSystemLine] = useState("World heartbeat stable · signals streaming…");
+
+  useHotkeys(() => setCmdOpen((v) => !v));
+
+  useEffect(() => {
+    const lines = [
+      "World heartbeat stable · signals streaming…",
+      "Chronicle index rebuilt · trace integrity 99.9%",
+      "Entropy rising · preserve what matters.",
+      "Noisy day detected · seek true signal.",
+      "Irreversible mode enabled · write carefully.",
+    ];
+    let i = 0;
+    const t = setInterval(() => {
+      i = (i + 1) % lines.length;
+      setSystemLine(lines[i]);
+    }, 6500);
+    return () => clearInterval(t);
+  }, []);
+
+  const heat = useMemo(() => pseudoHeatmap(21), []);
+  const chartData = useMemo(
+    () =>
+      Array.from({ length: 14 }).map((_, i) => ({
+        d: `D${i + 1}`,
+        v: Math.floor(20 + Math.random() * 50),
+      })),
+    []
+  );
+
+  const filtered = useMemo(() => {
+    const qq = query.trim().toLowerCase();
+    const list = records.filter((r) => {
+      if (!qq) return true;
+      return (
+        r.title.toLowerCase().includes(qq) ||
+        r.body.toLowerCase().includes(qq) ||
+        r.author.toLowerCase().includes(qq) ||
+        r.tags.some((t) => t.toLowerCase().includes(qq))
+      );
+    });
+    return list.slice(0, 28);
+  }, [records, query]);
+
+  const totals = useMemo(() => {
+    const total = records.length;
+    const today = records.filter((r) => r.day === 0).length;
+    const authors = new Set(records.map((r) => r.author)).size;
+    return { total, today, authors };
+  }, [records]);
+
+  const openRecord = (r: RecordItem) => {
+    setDetail(r);
+    setDrawerOpen(true);
+  };
+
+  const jumpTo = (id: string) => {
+    const r = records.find((x) => x.id === id);
+    if (r) openRecord(r);
+  };
+
+  const onNew = () => {
+    // focus write area by flashing state (simple)
+    const el = document.getElementById("write-panel");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const addRecord = () => {
+    const a = author.trim() || "Founder";
+    const t = text.trim();
+    if (t.length < 12) return;
+
+    const title =
+      writeMode === "short"
+        ? t.slice(0, 44)
+        : writeMode === "rule"
+        ? `Rule: ${t.slice(0, 40)}`
+        : writeMode === "event"
+        ? `Event: ${t.slice(0, 40)}`
+        : t.slice(0, 60);
+
+    const body =
+      writeMode === "short"
+        ? t
+        : writeMode === "manifesto"
+        ? t
+        : writeMode === "rule"
+        ? `This rule is binding: ${t}`
+        : `This event matters: ${t}`;
+
+    const item: RecordItem = {
+      id: `r_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      day: 0,
+      title,
+      body,
+      author: a,
+      ts: new Date().toISOString().replace(".000", ""),
+      heat: clamp(30 + Math.floor(Math.random() * 70), 0, 100),
+      tags: ["signal", writeMode],
+    };
+
+    setRecords((prev) => [item, ...prev]);
+    setText("");
+  };
+
+  return (
+    <div className="relative min-h-screen bg-[#070A10] text-white">
+      <AmbientBackground />
+
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        records={records}
+        onJump={jumpTo}
+        onNew={onNew}
+      />
+
+      <DetailDrawer
+        open={drawerOpen}
+        record={detail}
+        onClose={() => setDrawerOpen(false)}
+      />
+
+      <div className="relative mx-auto max-w-[1400px] px-5 pb-10 pt-8">
+        {/* Top Header */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-[rgba(120,102,255,0.35)] via-[rgba(0,210,255,0.22)] to-[rgba(255,0,160,0.14)]">
+                <Globe className="h-5 w-5 text-white/90" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white/90">现实世界</div>
+                <div className="text-xs text-white/50">Today: Day 2 · World start: 2025-12-20 00:00:00 UTC</div>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-2 md:flex">
+              <WorldPulseBar label={systemLine} />
+              <button
+                onClick={() => setCmdOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"
+              >
+                <Search className="h-4 w-4" />
+                Search
+                <span className="ml-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] text-white/60">
+                  ⌘/Ctrl K
+                </span>
+              </button>
+              <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
+                <Settings className="h-4 w-4" />
+                Settings
+              </button>
+            </div>
+          </div>
+
+          {/* stats pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill icon={<LayoutDashboard className="h-3.5 w-3.5" />}>
+              Total <CountUp value={totals.total} />
+            </Pill>
+            <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>
+              Today <CountUp value={totals.today} />
+            </Pill>
+            <Pill icon={<User className="h-3.5 w-3.5" />}>
+              Authors <CountUp value={totals.authors} />
+            </Pill>
+            <Pill icon={<Command className="h-3.5 w-3.5" />}>Command Palette enabled</Pill>
           </div>
         </div>
 
-        {/* Right: submit */}
-        <div className="card">
-          <div className="cardHeader">
-            <div>
-              <p className="cardTitle">留下记录</p>
-              <p className="cardValue">Write</p>
-            </div>
-            <span className="badge">最少 {MIN_CHARS} 字 · 间隔 {MIN_INTERVAL_SECONDS}s</span>
+        {/* Main Grid */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
+          {/* Left: Timeline */}
+          <div className="lg:col-span-7">
+            <GlassCard className="p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-xs text-white/55">时间线</div>
+                  <div className="text-2xl font-semibold tracking-tight text-white/92">
+                    Timeline
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
+                      <span>Range</span>
+                      <span className="text-white/60">{rangeDays}d</span>
+                      <ChevronDown className="h-4 w-4 text-white/60" />
+                    </button>
+                    {/* simple "fake" dropdown via quick buttons */}
+                    <div className="mt-2 flex gap-2">
+                      {[7, 14, 30].map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => setRangeDays(d)}
+                          className={cn(
+                            "rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75 hover:bg-white/10",
+                            rangeDays === d && "border-white/20 bg-white/10 text-white"
+                          )}
+                        >
+                          {d}d
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setView("chrono")}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
+                      view === "chrono" ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                    )}
+                  >
+                    <Clock className="h-4 w-4" />
+                    Chrono
+                  </button>
+                  <button
+                    onClick={() => setView("constellation")}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
+                      view === "constellation" ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                    )}
+                  >
+                    <Stars className="h-4 w-4" />
+                    Constellation
+                  </button>
+
+                  <button
+                    onClick={() => setRecords(genMockRecords())}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-white/35" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search content / author / tags…"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2 pl-10 pr-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
+                  />
+                </div>
+                <Pill>Sort: Latest</Pill>
+                <Pill>Filter: Heat ≥ 0</Pill>
+              </div>
+
+              <div className="mt-4">
+                <AnimatePresence mode="popLayout">
+                  {view === "chrono" ? (
+                    <motion.div
+                      key="chrono"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center justify-between px-1">
+                        <div className="text-xs text-white/55">
+                          Genesis — the first irreversible mark.
+                        </div>
+                        <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>
+                          Hover to feel depth
+                        </Pill>
+                      </div>
+
+                      <motion.div layout className="space-y-3">
+                        {filtered.map((r) => (
+                          <RecordCard
+                            key={r.id}
+                            r={r}
+                            onOpen={openRecord}
+                            pinned={!!pinned[r.id]}
+                            onPin={(id) => setPinned((p) => ({ ...p, [id]: !p[id] }))}
+                          />
+                        ))}
+                      </motion.div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="constellation"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                    >
+                      <ConstellationView records={filtered} onOpen={openRecord} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </GlassCard>
           </div>
-          <div className="cardBody">
-            <p style={{ marginTop: 0, color: "rgba(255,255,255,0.72)" }}>
-              写一段你愿意多年以后仍然被看见的文字。（不可撤回）
-            </p>
 
-            {/* honeypot */}
-            <input value={honeypot} onChange={(e) => setHoneypot(e.target.value)} style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+          {/* Middle: Dashboard */}
+          <div className="lg:col-span-2">
+            <div className="space-y-5">
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-white/70">World Dashboard</div>
+                  <LayoutDashboard className="h-4 w-4 text-white/60" />
+                </div>
+                <div className="mt-3 grid gap-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="text-[11px] text-white/55">World Age</div>
+                    <div className="mt-1 text-sm font-semibold text-white/90">
+                      2 days · 11 hours
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="text-[11px] text-white/55">Top Signal</div>
+                    <div className="mt-1 text-sm font-semibold text-white/90">Irreversible</div>
+                  </div>
+                </div>
+              </GlassCard>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <input className="input" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="你的名字（作者）" />
-              <textarea className="textarea" value={content} onChange={(e) => setContent(e.target.value)} placeholder="这个世界应该记住什么？" />
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-white/70">Heat (21d)</div>
+                  <Flame className="h-4 w-4 text-white/60" />
+                </div>
+                <div className="mt-3 grid grid-cols-7 gap-1">
+                  {heat.map((h, i) => {
+                    const a = clamp(h.v / 8, 0.08, 1);
+                    return (
+                      <div
+                        key={i}
+                        title={`Day ${h.d}: ${h.v}`}
+                        className="h-4 w-full rounded-md border border-white/10"
+                        style={{
+                          background: `rgba(120,102,255,${0.08 + a * 0.25})`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-[11px] text-white/45">
+                  Click patterns later → wire real analytics.
+                </div>
+              </GlassCard>
 
-              <label style={{ display: "flex", gap: 8, alignItems: "center", color: "rgba(255,255,255,0.72)", fontSize: 12 }}>
-                <input type="checkbox" checked={cooldownEnabled} onChange={(e) => setCooldownEnabled(e.target.checked)} />
-                启用 5 秒冷静时间（防冲动）
-                {cooldownEnabled && cooldownLeft > 0 ? <span> · 冷静：{cooldownLeft}s</span> : null}
-              </label>
-
-              <button className="btn btnPrimary" onClick={submitRecord} disabled={submitting || !allowedToday}>
-                {submitting ? "提交中…" : allowedToday ? "提交（不可逆）" : "今天已提交（明天再来）"}
-              </button>
-
-              <p style={{ margin: 0, color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-                Tip：点击作者名可筛选；通过“复制分享链接”分享当前视图。
-              </p>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-white/70">Signal Trend</div>
+                  <Radar className="h-4 w-4 text-white/60" />
+                </div>
+                <div className="mt-3 h-28">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                      <XAxis dataKey="d" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "rgba(0,0,0,0.75)",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          borderRadius: 12,
+                          color: "rgba(255,255,255,0.9)",
+                        }}
+                        labelStyle={{ color: "rgba(255,255,255,0.7)" }}
+                      />
+                      <Line type="monotone" dataKey="v" stroke="rgba(120,102,255,0.9)" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </GlassCard>
             </div>
+          </div>
+
+          {/* Right: Write */}
+          <div className="lg:col-span-3">
+            <GlassCard className="p-4" id="write-panel">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-white/55">留下记录</div>
+                  <div className="text-2xl font-semibold tracking-tight text-white/92">
+                    Write
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Min 12 chars</Pill>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  { k: "short", label: "Short" },
+                  { k: "manifesto", label: "Manifesto" },
+                  { k: "rule", label: "Rule" },
+                  { k: "event", label: "Event" },
+                ].map((m) => (
+                  <button
+                    key={m.k}
+                    onClick={() => setWriteMode(m.k as any)}
+                    className={cn(
+                      "rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
+                      writeMode === m.k ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="relative">
+                  <User className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-white/35" />
+                  <input
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Your name (author)"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2 pl-10 pr-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
+                  />
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="What should this world remember?"
+                    className="h-40 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
+                  />
+                  <div className="absolute bottom-3 right-3 text-[11px] text-white/45">
+                    {text.trim().length}/240
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="text-xs font-medium text-white/70">Preview</div>
+                  <div className="mt-2 text-sm text-white/70">
+                    {text.trim()
+                      ? text.trim()
+                      : "Your words will become an irreversible trace once sealed."}
+                  </div>
+                </div>
+
+                <SliderConfirm
+                  disabled={text.trim().length < 12}
+                  onConfirm={addRecord}
+                  label="Slide to seal (irreversible)"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setCmdOpen(true)}
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10"
+                  >
+                    <Search className="h-4 w-4" />
+                    Search
+                  </button>
+                  <button
+                    onClick={onNew}
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 hover:bg-white/10"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 text-[11px] text-white/45">
+                Pro tip: Your first “world-grade” page should feel alive even with mock data.
+              </div>
+            </GlassCard>
           </div>
         </div>
       </div>
-
-      {toast && (
-        <div className="toast">
-          <p className="toastTitle">{toast.title}</p>
-          <p className="toastMsg">{toast.msg}</p>
-        </div>
-      )}
     </div>
   );
 }
