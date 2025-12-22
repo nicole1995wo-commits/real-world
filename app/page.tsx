@@ -5,11 +5,31 @@ import AuthGate from "@/app/AuthGate";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Sparkles, Share2, Settings, Plus, RefreshCcw, Globe, Radar, Clock,
-  Stars, LayoutDashboard, Command, Pin, Flame, Hash, User, CheckCircle2, ChevronDown
+  Search,
+  Sparkles,
+  Share2,
+  Settings,
+  Plus,
+  RefreshCcw,
+  Globe,
+  Radar,
+  Clock,
+  LayoutDashboard,
+  Pin,
+  Flame,
+  Hash,
+  User,
+  CheckCircle2,
+  ChevronDown
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid
 } from "recharts";
 
 type RecordRow = {
@@ -24,7 +44,7 @@ type RecordRow = {
   created_at: string;
 };
 
-type ViewMode = "chrono" | "constellation";
+type ViewMode = "chrono";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -37,8 +57,13 @@ function formatUTC(ts: string) {
 }
 
 function GlassCard({
-  children, className, ...props
-}: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode; className?: string }) {
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div
       {...props}
@@ -64,14 +89,14 @@ function AmbientBackground() {
         style={{
           background:
             "conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(120,102,255,0.16), rgba(0,210,255,0.10), rgba(255,0,160,0.08), rgba(255,255,255,0.0))",
-          filter: "blur(70px)",
+          filter: "blur(70px)"
         }}
       />
       <div
         className="absolute inset-0 opacity-[0.06] mix-blend-overlay"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")",
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E\")"
         }}
       />
     </div>
@@ -81,14 +106,21 @@ function AmbientBackground() {
 function Pill({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur">
-      {icon}{children}
+      {icon}
+      {children}
     </span>
   );
 }
 
 function SliderConfirm({
-  onConfirm, disabled, label = "Slide to seal (irreversible)",
-}: { onConfirm: () => void; disabled?: boolean; label?: string }) {
+  onConfirm,
+  disabled,
+  label = "Slide to seal (irreversible)"
+}: {
+  onConfirm: () => void;
+  disabled?: boolean;
+  label?: string;
+}) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const handleRef = useRef<HTMLDivElement | null>(null);
 
@@ -101,13 +133,18 @@ function SliderConfirm({
 
   return (
     <div className={cn("select-none", disabled && "opacity-60")}>
-      <div ref={trackRef} className="relative h-12 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
+      <div
+        ref={trackRef}
+        className="relative h-12 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]"
+      >
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-[rgba(120,102,255,0.25)] via-[rgba(0,210,255,0.18)] to-[rgba(255,0,160,0.14)]"
           animate={{ opacity: [0.35, 0.6, 0.35] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
         />
-        <div className="absolute inset-0 flex items-center justify-center text-xs text-white/75">{label}</div>
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-white/75">
+          {label}
+        </div>
 
         <motion.div
           ref={handleRef}
@@ -124,23 +161,34 @@ function SliderConfirm({
           <CheckCircle2 className="h-5 w-5 text-white/80" />
         </motion.div>
       </div>
-      <div className="mt-2 text-[11px] text-white/45">Tip: ⌘/Ctrl + K opens command palette.</div>
+      <div className="mt-2 text-[11px] text-white/45">
+        Rule: login required · write is irreversible · DB owns the truth.
+      </div>
     </div>
   );
 }
 
 function RecordCard({
-  r, onOpen, pinned, onPin
+  r,
+  pinned,
+  onPin,
+  onOpen,
+  flash
 }: {
   r: RecordRow;
-  onOpen: (r: RecordRow) => void;
   pinned: boolean;
   onPin: (id: string) => void;
+  onOpen: (r: RecordRow) => void;
+  flash: boolean;
 }) {
   return (
     <motion.div
       layout
-      className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.055]"
+      className={cn(
+        "group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.055]",
+        flash &&
+          "border-white/30 bg-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.10),0_0_40px_rgba(120,102,255,0.25)]"
+      )}
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
     >
@@ -155,7 +203,9 @@ function RecordCard({
             <span>·</span>
             <span>{formatUTC(r.created_at.replace(".000", ""))}</span>
           </div>
-          <div className="mt-2 text-[15px] font-semibold leading-snug text-white/90">{r.title}</div>
+          <div className="mt-2 text-[15px] font-semibold leading-snug text-white/90">
+            {r.title}
+          </div>
         </div>
         <button
           onClick={() => onPin(r.id)}
@@ -173,14 +223,20 @@ function RecordCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
-          <User className="h-3 w-3" />{r.author}
+          <User className="h-3 w-3" />
+          {r.author}
         </span>
         <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/65">
-          <Flame className="h-3 w-3" />Heat {r.heat}
+          <Flame className="h-3 w-3" />
+          Heat {r.heat}
         </span>
-        {r.tags?.slice(0, 3).map((t) => (
-          <span key={t} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60">
-            <Hash className="h-3 w-3" />{t}
+        {(r.tags || []).slice(0, 3).map((t) => (
+          <span
+            key={t}
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60"
+          >
+            <Hash className="h-3 w-3" />
+            {t}
           </span>
         ))}
         <button
@@ -196,16 +252,20 @@ function RecordCard({
 
 export default function Page() {
   const [records, setRecords] = useState<RecordRow[]>([]);
-  const [view, setView] = useState<ViewMode>("chrono");
+  const [view] = useState<ViewMode>("chrono");
   const [rangeDays, setRangeDays] = useState(14);
   const [query, setQuery] = useState("");
   const [pinned, setPinned] = useState<Record<string, boolean>>({});
-  const [writeMode, setWriteMode] = useState<"short" | "manifesto" | "rule" | "event">("manifesto");
+  const [writeMode, setWriteMode] = useState<"short" | "manifesto" | "rule" | "event">(
+    "manifesto"
+  );
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
   const [systemLine, setSystemLine] = useState("World heartbeat stable · signals streaming…");
-  const timelineTopRef = useRef<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<RecordRow | null>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  const timelineTopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const lines = [
@@ -213,7 +273,7 @@ export default function Page() {
       "Chronicle index rebuilt · trace integrity 99.9%",
       "Entropy rising · preserve what matters.",
       "Noisy day detected · seek true signal.",
-      "Irreversible mode enabled · write carefully.",
+      "Irreversible mode enabled · write carefully."
     ];
     let i = 0;
     const t = setInterval(() => {
@@ -224,8 +284,8 @@ export default function Page() {
   }, []);
 
   async function loadRecords() {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user;
+    const { data: s } = await supabase.auth.getSession();
+    const user = s.session?.user;
     if (!user) return;
 
     const { data, error } = await supabase
@@ -266,15 +326,23 @@ export default function Page() {
     return { total, today, authors };
   }, [records]);
 
-  const heat = useMemo(() => Array.from({ length: 21 }).map((_, i) => ({
-    d: i + 1,
-    v: Math.floor(Math.pow(Math.random(), 0.7) * 8),
-  })), []);
+  const heat = useMemo(
+    () =>
+      Array.from({ length: 21 }).map((_, i) => ({
+        d: i + 1,
+        v: Math.floor(Math.pow(Math.random(), 0.7) * 8)
+      })),
+    []
+  );
 
-  const chartData = useMemo(() => Array.from({ length: 14 }).map((_, i) => ({
-    d: `D${i + 1}`,
-    v: Math.floor(20 + Math.random() * 50),
-  })), []);
+  const chartData = useMemo(
+    () =>
+      Array.from({ length: 14 }).map((_, i) => ({
+        d: `D${i + 1}`,
+        v: Math.floor(20 + Math.random() * 50)
+      })),
+    []
+  );
 
   async function addRecord() {
     const a = author.trim() || "Founder";
@@ -299,8 +367,8 @@ export default function Page() {
         ? `This rule is binding: ${t}`
         : `This event matters: ${t}`;
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user;
+    const { data: s } = await supabase.auth.getSession();
+    const user = s.session?.user;
     if (!user) return;
 
     const payload = {
@@ -312,20 +380,18 @@ export default function Page() {
       tags: ["signal", writeMode]
     };
 
-    const { data, error } = await supabase
-      .from("records_v2")
-      .insert(payload)
-      .select("*")
-      .single();
-
+    const { data, error } = await supabase.from("records_v2").insert(payload).select("*").single();
     if (error) return;
 
     setRecords((prev) => [data as any, ...prev]);
     setText("");
 
+    setFlashId((data as any).id);
+    setTimeout(() => setFlashId(null), 2500);
+
     setTimeout(() => {
       timelineTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+    }, 60);
   }
 
   return (
@@ -335,26 +401,35 @@ export default function Page() {
 
         <AnimatePresence>
           {detail && (
-            <motion.div className="fixed inset-0 z-40"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div
+              className="fixed inset-0 z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onMouseDown={() => setDetail(null)}
             >
               <div className="absolute inset-0 bg-black/55" />
               <motion.div
                 className="absolute right-0 top-0 h-full w-full max-w-xl border-l border-white/10 bg-black/60 backdrop-blur-xl"
-                initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
+                initial={{ x: 40, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 40, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 220, damping: 24 }}
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="p-5">
-                  <div className="text-xs text-white/55">Day {detail.day} · {formatUTC(detail.created_at.replace(".000", ""))}</div>
+                  <div className="text-xs text-white/55">
+                    Day {detail.day} · {formatUTC(detail.created_at.replace(".000", ""))}
+                  </div>
                   <div className="mt-3 text-2xl font-semibold text-white/92">{detail.title}</div>
                   <div className="mt-3 text-sm text-white/70 leading-relaxed">{detail.body}</div>
                   <div className="mt-6 flex flex-wrap gap-2">
                     <Pill icon={<User className="h-3.5 w-3.5" />}>{detail.author}</Pill>
                     <Pill icon={<Flame className="h-3.5 w-3.5" />}>Heat {detail.heat}</Pill>
                     {(detail.tags || []).map((t) => (
-                      <Pill key={t} icon={<Hash className="h-3.5 w-3.5" />}>{t}</Pill>
+                      <Pill key={t} icon={<Hash className="h-3.5 w-3.5" />}>
+                        {t}
+                      </Pill>
                     ))}
                   </div>
                 </div>
@@ -416,10 +491,13 @@ export default function Page() {
                     <div className="text-xs text-white/55">时间线</div>
                     <div className="text-2xl font-semibold tracking-tight text-white/92">Timeline</div>
                   </div>
+
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
                       <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10">
-                        <span>Range</span><span className="text-white/60">{rangeDays}d</span><ChevronDown className="h-4 w-4 text-white/60" />
+                        <span>Range</span>
+                        <span className="text-white/60">{rangeDays}d</span>
+                        <ChevronDown className="h-4 w-4 text-white/60" />
                       </button>
                       <div className="mt-2 flex gap-2">
                         {[7, 14, 30].map((d) => (
@@ -438,22 +516,6 @@ export default function Page() {
                     </div>
 
                     <button
-                      onClick={() => setView("chrono")}
-                      className={cn("inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
-                        view === "chrono" ? "bg-white/10 text-white" : "bg-white/5 text-white/75")}
-                    >
-                      <Clock className="h-4 w-4" /> Chrono
-                    </button>
-
-                    <button
-                      onClick={() => setView("constellation")}
-                      className={cn("inline-flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
-                        view === "constellation" ? "bg-white/10 text-white" : "bg-white/5 text-white/75")}
-                    >
-                      <Stars className="h-4 w-4" /> Constellation
-                    </button>
-
-                    <button
                       onClick={loadRecords}
                       className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"
                     >
@@ -468,39 +530,34 @@ export default function Page() {
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search content / author / tags…"
+                      placeholder="Search title / body / author / tags…"
                       className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2 pl-10 pr-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
                     />
                   </div>
-                  <Pill>Sort: Latest</Pill>
+                  <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Irreversible</Pill>
                 </div>
 
                 <div className="mt-4">
-                  {view === "chrono" ? (
-                    <motion.div className="space-y-3" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                      <div className="flex items-center justify-between px-1">
-                        <div className="text-xs text-white/55">Genesis — the first irreversible mark.</div>
-                        <Pill icon={<Sparkles className="h-3.5 w-3.5" />}>Hover to feel depth</Pill>
-                      </div>
+                  <div className="text-xs text-white/55 px-1">Genesis — the first irreversible mark.</div>
 
-                      <motion.div layout className="space-y-3">
-                        <div ref={timelineTopRef} />
-                        {filtered.map((r) => (
-                          <RecordCard
-                            key={r.id}
-                            r={r}
-                            onOpen={setDetail}
-                            pinned={!!pinned[r.id]}
-                            onPin={(id) => setPinned((p) => ({ ...p, [id]: !p[id] }))}
-                          />
-                        ))}
-                      </motion.div>
-                    </motion.div>
-                  ) : (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-sm text-white/60">
-                      Constellation (v2) — 后面我们再加“星图物理引擎”，现在先保证业务闭环。
-                    </div>
-                  )}
+                  <motion.div layout className="mt-3 space-y-3">
+                    <div ref={timelineTopRef} />
+                    {filtered.map((r) => (
+                      <RecordCard
+                        key={r.id}
+                        r={r}
+                        pinned={!!pinned[r.id]}
+                        onPin={(id) => setPinned((p) => ({ ...p, [id]: !p[id] }))}
+                        onOpen={setDetail}
+                        flash={flashId === r.id}
+                      />
+                    ))}
+                    {filtered.length === 0 && (
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-white/60">
+                        你还没有记录。写下第一条“不可撤回”的痕迹。
+                      </div>
+                    )}
+                  </motion.div>
                 </div>
               </GlassCard>
             </div>
@@ -515,12 +572,12 @@ export default function Page() {
                   </div>
                   <div className="mt-3 grid gap-2">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="text-[11px] text-white/55">World Age</div>
-                      <div className="mt-1 text-sm font-semibold text-white/90">Live</div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                       <div className="text-[11px] text-white/55">Top Signal</div>
                       <div className="mt-1 text-sm font-semibold text-white/90">Irreversible</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-[11px] text-white/55">Identity</div>
+                      <div className="mt-1 text-sm font-semibold text-white/90">Verified Email</div>
                     </div>
                   </div>
                 </GlassCard>
@@ -542,7 +599,7 @@ export default function Page() {
                       );
                     })}
                   </div>
-                  <div className="mt-2 text-[11px] text-white/45">Later → wire real analytics.</div>
+                  <div className="mt-2 text-[11px] text-white/45">Later → real analytics.</div>
                 </GlassCard>
 
                 <GlassCard className="p-4">
@@ -554,10 +611,25 @@ export default function Page() {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
                         <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                        <XAxis dataKey="d" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} axisLine={false} tickLine={false} width={24} />
+                        <XAxis
+                          dataKey="d"
+                          tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={24}
+                        />
                         <Tooltip
-                          contentStyle={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, color: "rgba(255,255,255,0.9)" }}
+                          contentStyle={{
+                            background: "rgba(0,0,0,0.75)",
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            borderRadius: 12,
+                            color: "rgba(255,255,255,0.9)"
+                          }}
                           labelStyle={{ color: "rgba(255,255,255,0.7)" }}
                         />
                         <Line type="monotone" dataKey="v" stroke="rgba(120,102,255,0.9)" strokeWidth={2} dot={false} />
@@ -584,14 +656,14 @@ export default function Page() {
                     { k: "short", label: "Short" },
                     { k: "manifesto", label: "Manifesto" },
                     { k: "rule", label: "Rule" },
-                    { k: "event", label: "Event" },
+                    { k: "event", label: "Event" }
                   ].map((m) => (
                     <button
                       key={m.k}
                       onClick={() => setWriteMode(m.k as any)}
                       className={cn(
                         "rounded-2xl border border-white/10 px-3 py-2 text-xs hover:bg-white/10",
-                        writeMode === m.k ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
+                        writeMode === (m.k as any) ? "bg-white/10 text-white" : "bg-white/5 text-white/75"
                       )}
                     >
                       {m.label}
@@ -617,13 +689,17 @@ export default function Page() {
                       placeholder="What should this world remember?"
                       className="h-40 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white/85 placeholder:text-white/35 outline-none focus:border-white/20"
                     />
-                    <div className="absolute bottom-3 right-3 text-[11px] text-white/45">{text.trim().length}/240</div>
+                    <div className="absolute bottom-3 right-3 text-[11px] text-white/45">
+                      {text.trim().length}/240
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                     <div className="text-xs font-medium text-white/70">Preview</div>
                     <div className="mt-2 text-sm text-white/70">
-                      {text.trim() ? text.trim() : "Your words will become an irreversible trace once sealed."}
+                      {text.trim()
+                        ? text.trim()
+                        : "Your words will become an irreversible trace once sealed."}
                     </div>
                   </div>
 
@@ -642,10 +718,6 @@ export default function Page() {
                     >
                       <Plus className="h-4 w-4" /> New
                     </button>
-                  </div>
-
-                  <div className="mt-2 text-[11px] text-white/45">
-                    World rule: login required · write is irreversible · your identity is bound to every trace.
                   </div>
                 </div>
               </GlassCard>
