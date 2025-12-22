@@ -725,6 +725,7 @@ export default function Page() {
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
   const [systemLine, setSystemLine] = useState("World heartbeat stable · signals streaming…");
+  const timelineTopRef = useRef<HTMLDivElement | null>(null);
 
   useHotkeys(() => setCmdOpen((v) => !v));
 
@@ -828,6 +829,9 @@ export default function Page() {
     setRecords((prev) => [item, ...prev]);
     setText("");
   };
+setTimeout(() => {
+  timelineTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+}, 50);
 
   return (
     <div className="relative min-h-screen bg-[#070A10] text-white">
@@ -1001,6 +1005,7 @@ export default function Page() {
                       </div>
 
                       <motion.div layout className="space-y-3">
+                        <div ref={timelineTopRef} />
                         {filtered.map((r) => (
                           <RecordCard
                             key={r.id}
