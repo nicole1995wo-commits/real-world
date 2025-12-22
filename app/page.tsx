@@ -1,4 +1,6 @@
 "use client";
+import LanguagePills from "@/app/LanguagePills";
+import { inter, arabic } from "@/app/fonts";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import AuthGate from "@/app/AuthGate";
