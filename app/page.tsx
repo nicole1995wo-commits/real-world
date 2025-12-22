@@ -170,12 +170,14 @@ function Pill({ children, icon }: { children: React.ReactNode; icon?: React.Reac
 function GlassCard({
   children,
   className,
-}: {
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & {
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <div
+      {...props}
       className={cn(
         "relative rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl",
         className
