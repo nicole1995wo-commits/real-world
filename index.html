@@ -71,9 +71,10 @@
     </main>
 
     <script>
-        // 数据库配置 (已核对)
+        // 核心配置：使用您提供的最新 Key
         const SUPABASE_URL = 'https://axcayrzxxvkneipjcreu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Y2F5cnp4eHZrbmVpcGpjcmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU4MTMyODUsImV4cCI6MjA1MTM4OTI4NX0.sNfXz_uR0A6DaxmEun8w-m-YvH1h8m3n9P9eR9f7R-8';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Y2F5cnp4eHZrbmVpcGpjcmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMTE4NzAsImV4cCI6MjA4MTc4Nzg3MH0.9aaU6irsY5GqHeeCOSb7uUOHhEZRBGPXSPPto68gpZM';
+        
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const langs = {
@@ -117,14 +118,14 @@
             btn.innerText = "Processing...";
 
             try {
-                // 写入数据库
+                // 写入数据库逻辑
                 const { error } = await _supabase
                     .from('miners')
                     .insert([{ email: email, tier: tier }]);
 
                 if (error) throw error;
 
-                // 成功后切换界面
+                // 成功后显示仪表盘
                 document.getElementById('join-form').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 
