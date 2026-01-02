@@ -5,79 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RealPower | Real World. Real Compute.</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #000; color: #fff; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .text-gradient { background: linear-gradient(180deg, #FFFFFF 0%, #666666 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #000; color: #fff; }
+        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .grad-text { background: linear-gradient(180deg, #FFFFFF 0%, #71717A 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .node-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1rem; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center">
-    <nav class="w-full max-w-6xl flex justify-between p-10 z-10">
-        <div class="font-black tracking-widest text-xl">REALPOWER</div>
-        <div class="space-x-4 text-xs text-gray-600">
+<body class="min-h-screen flex flex-col items-center overflow-x-hidden">
+    <nav class="w-full max-w-7xl flex justify-between items-center p-8 z-50">
+        <div class="font-extrabold tracking-tighter text-xl">REALPOWER</div>
+        <div class="flex gap-6 text-[10px] font-bold tracking-widest text-zinc-600">
             <button onclick="setLang('en')" class="hover:text-white transition">EN</button>
-            <button onclick="setLang('zh')" class="hover:text-white transition">中文</button>
+            <button onclick="setLang('zh')" class="hover:text-white transition">ZH</button>
+            <button onclick="setLang('jp')" class="hover:text-white transition">JP</button>
         </div>
     </nav>
 
-    <main class="flex-1 flex flex-col items-center justify-center px-6 relative w-full">
-        <div class="absolute w-[600px] h-[600px] bg-white opacity-[0.02] rounded-full blur-[120px] pointer-events-none"></div>
+    <main class="flex-1 flex flex-col items-center justify-center px-6 relative w-full pb-20">
+        <div class="absolute w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[120px] -z-10"></div>
         
-        <h1 id="main-title" class="text-5xl md:text-8xl font-black text-center mb-6 tracking-tighter text-gradient leading-none">
+        <h1 id="t-title" class="text-6xl md:text-[100px] font-extrabold text-center mb-6 tracking-tight grad-text leading-[0.9]">
             Real World.<br>Real Compute.
         </h1>
-        <p id="main-desc" class="text-gray-500 text-center max-w-lg mb-12 text-lg leading-relaxed">
-            Join the world's most powerful decentralized infrastructure.
+        <p id="t-desc" class="text-zinc-500 text-center max-w-md mb-12 text-lg font-medium leading-relaxed">
+            The global decentralized AI & Bandwidth network. Earn rewards by sharing idle compute.
         </p>
 
-        <div class="glass p-10 rounded-[32px] w-full max-w-md shadow-2xl z-20">
-            <div id="form-content">
-                <div class="mb-6">
-                    <label id="label-email" class="text-[10px] text-gray-500 tracking-widest font-bold mb-2 block uppercase">Identity</label>
-                    <input type="email" placeholder="Email for Genesis Access" class="w-full p-4 bg-black border border-gray-800 rounded-xl focus:border-white outline-none transition text-white">
+        <div class="glass-card p-10 rounded-[40px] w-full max-w-[440px] shadow-2xl">
+            <div id="join-form">
+                <div class="mb-6 text-center">
+                    <h2 id="t-header" class="text-xl font-bold">Genesis Node Access</h2>
                 </div>
-                <div class="mb-10">
-                    <label id="label-device" class="text-[10px] text-gray-500 tracking-widest font-bold mb-2 block uppercase">Hardware Node</label>
-                    <select class="w-full p-4 bg-black border border-gray-800 rounded-xl appearance-none cursor-pointer outline-none">
-                        <option value="GPU">Tier 1: High-End GPU (RTX 40/50)</option>
-                        <option value="PC">Tier 2: Standard PC (CPU/Laptop)</option>
-                        <option value="Mobile">Tier 3: Edge Node (Mobile/Bandwidth)</option>
-                    </select>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label id="l-email" class="text-[10px] text-zinc-500 tracking-widest font-black mb-2 block uppercase">Identity Email</label>
+                        <input type="email" placeholder="name@company.com" class="w-full p-4 bg-zinc-950 border border-zinc-900 rounded-2xl focus:border-zinc-500 outline-none transition text-white placeholder:text-zinc-800">
+                    </div>
+                    
+                    <div>
+                        <label id="l-node" class="text-[10px] text-zinc-500 tracking-widest font-black mb-2 block uppercase">Hardware Tier</label>
+                        <select class="node-select w-full p-4 bg-zinc-950 border border-zinc-900 rounded-2xl appearance-none cursor-pointer outline-none focus:border-zinc-500 text-sm">
+                            <option id="o-1" value="GPU">Tier 1: Enterprise GPU (RTX 40/50)</option>
+                            <option id="o-2" value="PC">Tier 2: Personal Compute (CPU/PC)</option>
+                            <option id="o-3" value="Mobile">Tier 3: Edge Bandwidth (Mobile)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="handleInit()" class="w-full py-5 bg-white text-black font-extrabold rounded-2xl hover:bg-zinc-200 transition-all active:scale-[0.98] mt-4 shadow-xl shadow-white/5">
+                        <span id="t-btn">Initialize Protocol</span>
+                    </button>
                 </div>
-                <button onclick="initNode()" class="w-full py-5 bg-white text-black font-black rounded-xl hover:scale-[1.02] active:scale-[0.98] transition shadow-lg shadow-white/10 text-lg">
-                    Initialize Node
-                </button>
             </div>
-            <div id="success-msg" class="hidden text-center text-green-400 font-bold py-4">✓ Node Initialized. Check Email.</div>
+
+            <div id="success-view" class="hidden py-10 text-center">
+                <div class="text-4xl mb-4">✨</div>
+                <h3 class="text-xl font-bold mb-2">Protocol Linked</h3>
+                <p class="text-zinc-500 text-sm">Waiting for genesis block validation...</p>
+            </div>
         </div>
     </main>
 
-    <footer class="w-full max-w-4xl py-20 border-t border-zinc-900 flex justify-center space-x-20">
+    <footer class="w-full max-w-4xl py-12 border-t border-zinc-900/50 flex justify-center gap-16 md:gap-32">
         <div class="text-center">
-            <div class="text-2xl font-bold">1,248</div>
-            <div class="text-[10px] text-gray-600 tracking-widest uppercase mt-1">Active Nodes</div>
+            <div class="text-2xl font-extrabold">1,248</div>
+            <div class="text-[9px] text-zinc-600 tracking-[0.2em] font-black uppercase mt-1">Nodes Online</div>
         </div>
         <div class="text-center">
-            <div class="text-2xl font-bold">82.4 PF</div>
-            <div class="text-[10px] text-gray-600 tracking-widest uppercase mt-1">Network Power</div>
+            <div class="text-2xl font-extrabold">82.4 PF</div>
+            <div class="text-[9px] text-zinc-600 tracking-[0.2em] font-black uppercase mt-1">Network Power</div>
+        </div>
+        <div class="text-center text-green-500">
+            <div class="text-2xl font-extrabold italic">LIVE</div>
+            <div class="text-[9px] text-zinc-600 tracking-[0.2em] font-black uppercase mt-1">Status</div>
         </div>
     </footer>
 
     <script>
-        const content = {
-            zh: { title: "真实世界。<br>真实算力。", desc: "加入全球最强大的去中心化基础设施，出租闲置硬件获取收益。", label1: "身份认证", label2: "硬件节点类型", btn: "初始化节点" },
-            en: { title: "Real World.<br>Real Compute.", desc: "Join the world's most powerful decentralized infrastructure.", label1: "Identity", label2: "Hardware Node", btn: "Initialize Node" }
+        const langs = {
+            zh: { title: "真实世界。<br>真实算力。", desc: "全球去中心化 AI 算力网络。共享闲置资源，获取实时收益。", header: "创世节点访问", email: "身份邮箱", node: "硬件等级", btn: "初始化协议", o1: "一级：企业级 GPU (RTX 40/50)", o2: "二级：个人计算 (CPU/PC)", o3: "三级：边缘带宽 (移动设备)" },
+            en: { title: "Real World.<br>Real Compute.", desc: "The global decentralized AI & Bandwidth network. Earn rewards by sharing idle compute.", header: "Genesis Node Access", email: "Identity Email", node: "Hardware Tier", btn: "Initialize Protocol", o1: "Tier 1: Enterprise GPU (RTX 40/50)", o2: "Tier 2: Personal Compute (CPU/PC)", o3: "Tier 3: Edge Bandwidth (Mobile)" },
+            jp: { title: "現実世界。<br>リアル計算。", desc: "世界的な分散型 AI ネットワーク。アイドル計算を共有して報酬を得る。", header: "創世ノードアクセス", email: "身元メール", node: "ハードウェア層", btn: "プロトコルを初期化", o1: "ティア1：企業向け GPU", o2: "ティア2：個人用計算 (PC)", o3: "ティア3：エッジ帯域幅 (携帯)" }
         };
-        function setLang(lang) {
-            document.getElementById('main-title').innerHTML = content[lang].title;
-            document.getElementById('main-desc').innerText = content[lang].desc;
-            document.getElementById('label-email').innerText = content[lang].label1;
-            document.getElementById('label-device').innerText = content[lang].label2;
+
+        function setLang(l) {
+            const t = langs[l];
+            document.getElementById('t-title').innerHTML = t.title;
+            document.getElementById('t-desc').innerText = t.desc;
+            document.getElementById('t-header').innerText = t.header;
+            document.getElementById('l-email').innerText = t.email;
+            document.getElementById('l-node').innerText = t.node;
+            document.getElementById('t-btn').innerText = t.btn;
+            document.getElementById('o-1').innerText = t.o1;
+            document.getElementById('o-2').innerText = t.o2;
+            document.getElementById('o-3').innerText = t.o3;
         }
-        function initNode() {
-            document.getElementById('form-content').classList.add('hidden');
-            document.getElementById('success-msg').classList.remove('hidden');
+
+        function handleInit() {
+            document.getElementById('join-form').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('join-form').classList.add('hidden');
+                document.getElementById('success-view').classList.remove('hidden');
+            }, 300);
         }
     </script>
 </body>
