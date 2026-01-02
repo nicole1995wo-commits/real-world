@@ -3,114 +3,43 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>僵尸开炮风格（成品向）- 动画场景+人物怪物图像</title>
+<title>Z炮 成品试玩（6段拼装版）</title>
 <style>
-  :root { color-scheme: dark; }
-  body{
-    margin:0; overflow:hidden;
-    background: radial-gradient(1200px 700px at 15% 20%, rgba(120,160,255,.10), transparent 55%),
-                radial-gradient(1200px 700px at 85% 80%, rgba(255,120,200,.10), transparent 55%),
-                #070a12;
-    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    color:#e8ecff;
-  }
+  :root{ color-scheme:dark; }
+  body{ margin:0; overflow:hidden; background:#070a12; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; color:#e8ecff; }
   canvas{ width:100vw; height:100vh; display:block; touch-action:none; }
-  .hud{
-    position:fixed; left:12px; right:12px; top:10px; z-index:20;
-    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    pointer-events:none;
-  }
-  .pill{
-    pointer-events:none;
-    padding:10px 12px; border-radius:999px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.12);
-    backdrop-filter: blur(14px);
-    font-weight:900; font-size:13px;
-  }
-  .rightBtns{
-    position:fixed; right:12px; top:72px; z-index:30;
-    display:flex; flex-direction:column; gap:10px;
-  }
-  .btn{
-    user-select:none; cursor:pointer;
-    padding:12px 14px; border-radius:14px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.14);
-    font-weight:950; font-size:14px;
-    box-shadow: 0 14px 55px rgba(0,0,0,.35);
-  }
+  .hud{ position:fixed; left:12px; right:12px; top:10px; z-index:20; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; pointer-events:none;}
+  .pill{ pointer-events:none; padding:10px 12px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); backdrop-filter: blur(14px); font-weight:900; font-size:13px;}
+  .right{ position:fixed; right:12px; top:72px; z-index:30; display:flex; flex-direction:column; gap:10px; }
+  .btn{ pointer-events:auto; user-select:none; cursor:pointer; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); font-weight:950; font-size:14px; box-shadow:0 14px 55px rgba(0,0,0,.35);}
   .btn:active{ transform: translateY(1px); }
-  .overlay{
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.62); z-index:50; padding:16px;
-  }
+  .stick{ position:fixed; bottom:16px; width:154px; height:154px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); backdrop-filter: blur(14px); display:none; z-index:25; touch-action:none; }
+  .stick.show{ display:block; }  #stickMove{ left:16px; }  #stickAim{ right:16px; }
+  .knob{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin-left:-29px; margin-top:-29px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22); box-shadow:0 10px 30px rgba(0,0,0,.35); pointer-events:none; }
+  .overlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.62); z-index:50; padding:16px;}
   .overlay.show{ display:flex; }
-  .modal{
-    width:min(980px, 100%);
-    border-radius:20px;
-    background:rgba(14,18,30,.92);
-    border:1px solid rgba(255,255,255,.14);
-    box-shadow: 0 30px 140px rgba(0,0,0,.65);
-    padding:14px;
-    backdrop-filter: blur(16px);
-  }
-  .modalTop{
-    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    padding:6px 6px 10px;
-  }
-  .modal h2{ margin:0; font-size:16px; }
-  .cards{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
-  .card{
-    cursor:pointer;
-    border-radius:16px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.12);
-    padding:12px;
-    min-height:112px;
-    transition: transform .08s ease, background .08s ease;
-  }
+  .modal{ width:min(980px, 100%); border-radius:20px; background:rgba(14,18,30,.92); border:1px solid rgba(255,255,255,.14); box-shadow:0 30px 140px rgba(0,0,0,.65); padding:14px; backdrop-filter: blur(16px); }
+  .modalTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:6px 6px 10px; }
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .card{ cursor:pointer; border-radius:16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); padding:12px; min-height:108px; transition:transform .08s ease, background .08s ease; }
   .card:hover{ transform: translateY(-1px); background:rgba(255,255,255,.10); }
-  .card .t{ font-weight:1000; margin-bottom:6px; }
-  .card .d{ font-size:13px; opacity:.85; line-height:1.35; }
+  .card .t{ font-weight:1000; margin-bottom:6px; } .card .d{ font-size:13px; opacity:.85; line-height:1.35; }
   .note{ font-size:12px; opacity:.75; padding:10px 6px 4px; line-height:1.4; }
-  /* Mobile sticks */
-  .stick{
-    position:fixed; bottom:16px; width:154px; height:154px;
-    border-radius:999px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.12);
-    backdrop-filter: blur(14px);
-    display:none;
-    z-index:25;
-    touch-action:none;
-  }
-  .stick.show{ display:block; }
-  #stickMove{ left:16px; }
-  #stickAim{ right:16px; }
-  .knob{
-    position:absolute; left:50%; top:50%;
-    width:58px; height:58px; margin-left:-29px; margin-top:-29px;
-    border-radius:999px;
-    background:rgba(255,255,255,.16);
-    border:1px solid rgba(255,255,255,.22);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    pointer-events:none;
-  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
 <div class="hud">
-  <div class="pill">HP：<span id="hp">0</span>/<span id="hpMax">0</span>　护盾：<span id="sh">0</span></div>
-  <div class="pill">武器：<span id="wp">-</span>　DPS：<span id="dps">-</span>　暴击：<span id="crit">-</span></div>
-  <div class="pill">波次：<span id="wave">1</span>　剩余：<span id="left">0</span>　击杀：<span id="kills">0</span>　金币：<span id="gold">0</span></div>
+  <div class="pill">HP <span id="hp">-</span>/<span id="hpMax">-</span>｜护盾 <span id="sh">-</span>｜金币 <span id="gold">0</span></div>
+  <div class="pill">波次 <span id="wave">1</span>｜剩余 <span id="left">0</span>｜击杀 <span id="kills">0</span></div>
+  <div class="pill">DPS <span id="dps">-</span>｜模式 <span id="mode">战斗</span>｜FPS <span id="fps">-</span></div>
 </div>
 
-<div class="rightBtns">
+<div class="right">
   <div class="btn" id="btnSkill">技能（空格）</div>
   <div class="btn" id="btnShop">商店（E）</div>
+  <div class="btn" id="btnMeta">局外养成</div>
   <div class="btn" id="btnPause">暂停（P）</div>
 </div>
 
@@ -120,7 +49,7 @@
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="modalTop">
-      <h2 id="modalTitle">升级选择</h2>
+      <h3 id="modalTitle" style="margin:0">面板</h3>
       <div class="btn" id="modalClose">关闭</div>
     </div>
     <div class="cards" id="cards"></div>
@@ -130,1341 +59,1330 @@
 
 <script>
 (() => {
-  // ===== Canvas / DPR =====
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha: true });
+  const $ = (id)=>document.getElementById(id);
+
+  // ===== Global Game Object (later parts will extend this) =====
+  const ZG = window.ZG = {
+    v: "1.0",
+    // canvas
+    canvas: $("c"),
+    ctx: null,
+    w: innerWidth, h: innerHeight, dpr: 1,
+    // ui
+    ui: {
+      hp:$("hp"), hpMax:$("hpMax"), sh:$("sh"), gold:$("gold"),
+      wave:$("wave"), left:$("left"), kills:$("kills"), dps:$("dps"), mode:$("mode"), fps:$("fps"),
+      btnSkill:$("btnSkill"), btnShop:$("btnShop"), btnMeta:$("btnMeta"), btnPause:$("btnPause"),
+      overlay:$("overlay"), modalTitle:$("modalTitle"), modalClose:$("modalClose"), cards:$("cards"), modalNote:$("modalNote"),
+    },
+    // helpers
+    clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
+    rand:(a,b)=>a+Math.random()*(b-a),
+    norm:(x,y)=>{ const l=Math.hypot(x,y)||1; return [x/l,y/l]; },
+    lerp:(a,b,t)=>a+(b-a)*t,
+    now:()=>performance.now(),
+    // state
+    paused:false,
+    mode:"battle", // battle / meta
+    shake:0,
+    // world
+    world:{ w:4200, h:2800 },
+    cam:{ x:0, y:0 },
+    // input
+    keys:new Set(),
+    mouse:{ x:innerWidth*0.5, y:innerHeight*0.5 },
+    isTouch: matchMedia('(pointer: coarse)').matches,
+    joy:{ move:{active:false,id:null,cx:0,cy:0,vx:0,vy:0}, aim:{active:false,id:null,cx:0,cy:0,vx:0,vy:0} },
+    // scene layers
+    fog:[], dust:[],
+    // entities
+    ent:{ bullets:[], enemies:[], towers:[], traps:[], pickups:[], particles:[], floaters:[] },
+    // core stats (battle) — later parts will enrich
+    player:{
+      x:2100,y:1400,r:22, speed:330, faceA:0, animT:0,
+      hpMax:140,hp:140, shMax:70, sh:35, shRegen:8, shDelay:1100, shHitAt:0,
+      gold:0, kills:0,
+    },
+    combat:{ wave:1, left:0, state:"fight" },
+    meta:{ perm:{ atk:0, fir:0, hp:0, gold:0 }, gems:0 }, // Part 5/6
+    // hooks/modules
+    modules:[],
+    hook:{ update:[], draw:[], ui:[] },
+  };
+
+  // ----- Canvas resize -----
+  ZG.ctx = ZG.canvas.getContext("2d", { alpha:true });
   function resize(){
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = Math.floor(innerWidth * dpr);
-    canvas.height = Math.floor(innerHeight * dpr);
-    canvas.style.width = innerWidth + 'px';
-    canvas.style.height = innerHeight + 'px';
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ZG.dpr = Math.min(2, devicePixelRatio||1);
+    ZG.w = innerWidth; ZG.h = innerHeight;
+    ZG.canvas.width  = Math.floor(ZG.w * ZG.dpr);
+    ZG.canvas.height = Math.floor(ZG.h * ZG.dpr);
+    ZG.canvas.style.width = ZG.w+"px";
+    ZG.canvas.style.height= ZG.h+"px";
+    ZG.ctx.setTransform(ZG.dpr,0,0,ZG.dpr,0,0);
   }
-  addEventListener('resize', resize);
+  addEventListener("resize", resize);
   resize();
 
-  // ===== UI =====
-  const $ = (id)=>document.getElementById(id);
-  const hpEl=$('hp'), hpMaxEl=$('hpMax'), shEl=$('sh');
-  const wpEl=$('wp'), dpsEl=$('dps'), critEl=$('crit');
-  const waveEl=$('wave'), leftEl=$('left'), killsEl=$('kills'), goldEl=$('gold');
-  const btnSkill=$('btnSkill'), btnShop=$('btnShop'), btnPause=$('btnPause');
-  const overlay=$('overlay'), cardsEl=$('cards'), modalTitle=$('modalTitle'), modalClose=$('modalClose'), modalNote=$('modalNote');
-
-  // ===== Helpers =====
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-  const rand=(a,b)=>a+Math.random()*(b-a);
-  const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
-  const norm=(x,y)=>{ const l=Math.hypot(x,y)||1; return [x/l,y/l]; };
-  const lerp=(a,b,t)=>a+(b-a)*t;
-  const now=()=>performance.now();
-
-  // ===== Assets (SVG sprite -> Image) =====
-  function svgToImg(svg){
-    const img = new Image();
-    const blob = new Blob([svg], {type:'image/svg+xml'});
-    const url = URL.createObjectURL(blob);
-    img.src = url;
-    img.onload = () => URL.revokeObjectURL(url);
-    return img;
-  }
-
-  // 4帧小人（走路）+ 4帧僵尸（走路）+ Boss（2帧呼吸）
-  // 每帧是一个SVG（简化但像“有图”的角色），再按帧切换实现动画。
-  const SPR = {
-    player: [
-`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-<circle cx="40" cy="52" r="18" fill="#f4f7ff" opacity=".92"/>
-<circle cx="40" cy="34" r="12" fill="#f4f7ff" opacity=".92"/>
-<rect x="34" y="18" width="12" height="8" rx="3" fill="#0b1020" opacity=".45"/>
-<circle cx="36" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<circle cx="44" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<path d="M30 50 L16 56" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M50 50 L64 58" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M34 66 L26 74" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<path d="M46 66 L56 74" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<circle cx="40" cy="52" r="19" fill="none" stroke="#ffffff" opacity=".12"/>
-<circle cx="40" cy="52" r="22" fill="#ffffff" opacity=".10" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-<circle cx="40" cy="52" r="18" fill="#f4f7ff" opacity=".92"/>
-<circle cx="40" cy="34" r="12" fill="#f4f7ff" opacity=".92"/>
-<rect x="34" y="18" width="12" height="8" rx="3" fill="#0b1020" opacity=".45"/>
-<circle cx="36" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<circle cx="44" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<path d="M30 50 L18 60" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M50 50 L62 54" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M34 66 L30 75" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<path d="M46 66 L52 73" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<circle cx="40" cy="52" r="19" fill="none" stroke="#ffffff" opacity=".12"/>
-<circle cx="40" cy="52" r="22" fill="#ffffff" opacity=".10" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-<circle cx="40" cy="52" r="18" fill="#f4f7ff" opacity=".92"/>
-<circle cx="40" cy="34" r="12" fill="#f4f7ff" opacity=".92"/>
-<rect x="34" y="18" width="12" height="8" rx="3" fill="#0b1020" opacity=".45"/>
-<circle cx="36" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<circle cx="44" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<path d="M30 50 L18 56" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M50 50 L64 54" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M34 66 L28 74" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<path d="M46 66 L54 75" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<circle cx="40" cy="52" r="19" fill="none" stroke="#ffffff" opacity=".12"/>
-<circle cx="40" cy="52" r="22" fill="#ffffff" opacity=".10" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-<circle cx="40" cy="52" r="18" fill="#f4f7ff" opacity=".92"/>
-<circle cx="40" cy="34" r="12" fill="#f4f7ff" opacity=".92"/>
-<rect x="34" y="18" width="12" height="8" rx="3" fill="#0b1020" opacity=".45"/>
-<circle cx="36" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<circle cx="44" cy="32" r="2.2" fill="#0b1020" opacity=".6"/>
-<path d="M30 50 L16 54" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M50 50 L62 60" stroke="#f4f7ff" stroke-width="6" stroke-linecap="round" opacity=".92"/>
-<path d="M34 66 L30 73" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<path d="M46 66 L52 75" stroke="#f4f7ff" stroke-width="7" stroke-linecap="round" opacity=".92"/>
-<circle cx="40" cy="52" r="19" fill="none" stroke="#ffffff" opacity=".12"/>
-<circle cx="40" cy="52" r="22" fill="#ffffff" opacity=".10" filter="url(#g)"/>
-</svg>`
-    ].map(svgToImg),
-
-    zombie: [
-`<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8"/></filter></defs>
-<circle cx="42" cy="54" r="18" fill="#e9fff6" opacity=".86"/>
-<circle cx="42" cy="34" r="12" fill="#e9fff6" opacity=".86"/>
-<circle cx="38" cy="32" r="2.4" fill="#0b1020" opacity=".65"/>
-<circle cx="46" cy="33" r="2.4" fill="#0b1020" opacity=".65"/>
-<path d="M34 38 Q42 42 50 38" stroke="#0b1020" stroke-width="2.4" opacity=".35" fill="none"/>
-<path d="M30 52 L18 60" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M54 52 L66 58" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M38 68 L30 76" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<path d="M48 68 L58 76" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<circle cx="42" cy="54" r="24" fill="#ffffff" opacity=".09" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8"/></filter></defs>
-<circle cx="42" cy="54" r="18" fill="#e9fff6" opacity=".86"/>
-<circle cx="42" cy="34" r="12" fill="#e9fff6" opacity=".86"/>
-<circle cx="38" cy="32" r="2.4" fill="#0b1020" opacity=".65"/>
-<circle cx="46" cy="33" r="2.4" fill="#0b1020" opacity=".65"/>
-<path d="M34 38 Q42 42 50 38" stroke="#0b1020" stroke-width="2.4" opacity=".35" fill="none"/>
-<path d="M30 52 L20 62" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M54 52 L64 56" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M38 68 L34 77" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<path d="M48 68 L54 75" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<circle cx="42" cy="54" r="24" fill="#ffffff" opacity=".09" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8"/></filter></defs>
-<circle cx="42" cy="54" r="18" fill="#e9fff6" opacity=".86"/>
-<circle cx="42" cy="34" r="12" fill="#e9fff6" opacity=".86"/>
-<circle cx="38" cy="32" r="2.4" fill="#0b1020" opacity=".65"/>
-<circle cx="46" cy="33" r="2.4" fill="#0b1020" opacity=".65"/>
-<path d="M34 38 Q42 42 50 38" stroke="#0b1020" stroke-width="2.4" opacity=".35" fill="none"/>
-<path d="M30 52 L20 58" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M54 52 L66 56" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M38 68 L32 76" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<path d="M48 68 L56 77" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<circle cx="42" cy="54" r="24" fill="#ffffff" opacity=".09" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8"/></filter></defs>
-<circle cx="42" cy="54" r="18" fill="#e9fff6" opacity=".86"/>
-<circle cx="42" cy="34" r="12" fill="#e9fff6" opacity=".86"/>
-<circle cx="38" cy="32" r="2.4" fill="#0b1020" opacity=".65"/>
-<circle cx="46" cy="33" r="2.4" fill="#0b1020" opacity=".65"/>
-<path d="M34 38 Q42 42 50 38" stroke="#0b1020" stroke-width="2.4" opacity=".35" fill="none"/>
-<path d="M30 52 L18 56" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M54 52 L64 62" stroke="#e9fff6" stroke-width="6" stroke-linecap="round" opacity=".86"/>
-<path d="M38 68 L34 75" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<path d="M48 68 L54 77" stroke="#e9fff6" stroke-width="7" stroke-linecap="round" opacity=".86"/>
-<circle cx="42" cy="54" r="24" fill="#ffffff" opacity=".09" filter="url(#g)"/>
-</svg>`
-    ].map(svgToImg),
-
-    boss: [
-`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
-<circle cx="60" cy="76" r="28" fill="#fff4f4" opacity=".86"/>
-<circle cx="60" cy="46" r="18" fill="#fff4f4" opacity=".86"/>
-<path d="M40 44 Q60 30 80 44" stroke="#0b1020" stroke-width="5" opacity=".35" fill="none"/>
-<circle cx="54" cy="46" r="3" fill="#0b1020" opacity=".65"/>
-<circle cx="66" cy="47" r="3" fill="#0b1020" opacity=".65"/>
-<path d="M48 56 Q60 64 72 56" stroke="#0b1020" stroke-width="3" opacity=".35" fill="none"/>
-<path d="M36 74 L18 86" stroke="#fff4f4" stroke-width="10" stroke-linecap="round" opacity=".86"/>
-<path d="M84 74 L102 86" stroke="#fff4f4" stroke-width="10" stroke-linecap="round" opacity=".86"/>
-<circle cx="60" cy="76" r="38" fill="#ffffff" opacity=".08" filter="url(#g)"/>
-</svg>`,
-`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
-<defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
-<circle cx="60" cy="78" r="28" fill="#fff4f4" opacity=".86"/>
-<circle cx="60" cy="46" r="18" fill="#fff4f4" opacity=".86"/>
-<path d="M40 44 Q60 30 80 44" stroke="#0b1020" stroke-width="5" opacity=".35" fill="none"/>
-<circle cx="54" cy="46" r="3" fill="#0b1020" opacity=".65"/>
-<circle cx="66" cy="47" r="3" fill="#0b1020" opacity=".65"/>
-<path d="M48 56 Q60 66 72 56" stroke="#0b1020" stroke-width="3" opacity=".35" fill="none"/>
-<path d="M36 76 L18 88" stroke="#fff4f4" stroke-width="10" stroke-linecap="round" opacity=".86"/>
-<path d="M84 76 L102 88" stroke="#fff4f4" stroke-width="10" stroke-linecap="round" opacity=".86"/>
-<circle cx="60" cy="78" r="38" fill="#ffffff" opacity=".08" filter="url(#g)"/>
-</svg>`
-    ].map(svgToImg),
-  };
-
-  // ===== World =====
-  const world = { w: 3800, h: 2600 };
-  let cam = { x: 0, y: 0 };
-  let shake = 0;
-
-  // Scene animation layers
-  const fog = [];
-  const dust = [];
-  function initScene(){
-    fog.length = 0; dust.length = 0;
-    for (let i=0;i<24;i++){
-      fog.push({ x: rand(0,world.w), y: rand(0,world.h), r: rand(180,420), vx: rand(-10,10), vy: rand(-6,6), a: rand(0.06,0.14) });
-    }
-    for (let i=0;i<140;i++){
-      dust.push({ x: rand(0,world.w), y: rand(0,world.h), r: rand(0.8,2.0), vx: rand(-12,12), vy: rand(-12,12), a: rand(0.06,0.18) });
-    }
-  }
-  initScene();
-
-  // ===== Input =====
-  const keys = new Set();
-  addEventListener('keydown', (e)=>{
-    const k=e.key.toLowerCase();
-    keys.add(k);
-    if (k===' '){ e.preventDefault(); trySkill(); }
-    if (k==='p'){ togglePause(); }
-    if (k==='e'){ toggleShop(); }
+  // ----- Input -----
+  addEventListener("keydown",(e)=>{
+    const k = e.key.toLowerCase();
+    ZG.keys.add(k);
+    if (k==="p") togglePause();
+    if (k===" "){ e.preventDefault(); ZG.hook.ui.forEach(fn=>fn("skill")); }
+    if (k==="e"){ ZG.hook.ui.forEach(fn=>fn("shop")); }
   }, {passive:false});
-  addEventListener('keyup', (e)=> keys.delete(e.key.toLowerCase()));
+  addEventListener("keyup",(e)=>ZG.keys.delete(e.key.toLowerCase()));
+  addEventListener("pointermove",(e)=>{ ZG.mouse.x=e.clientX; ZG.mouse.y=e.clientY; });
 
-  let mouse = { x: innerWidth*0.5, y: innerHeight*0.5 };
-  addEventListener('pointermove', (e)=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
-
-  // Mobile sticks
-  const isTouch = matchMedia('(pointer: coarse)').matches;
-  const stickMove=$('stickMove'), stickAim=$('stickAim'), knobMove=$('knobMove'), knobAim=$('knobAim');
-  if (isTouch){ stickMove.classList.add('show'); stickAim.classList.add('show'); }
-
-  let joy = {
-    move:{active:false,id:null,cx:0,cy:0,vx:0,vy:0},
-    aim :{active:false,id:null,cx:0,cy:0,vx:0,vy:0}
-  };
-  function bindStick(el, knob, stateKey){
-    el.addEventListener('pointerdown', (e)=>{
-      const st=joy[stateKey];
+  // mobile sticks
+  const stickMove = $("stickMove"), stickAim = $("stickAim");
+  const knobMove = $("knobMove"), knobAim = $("knobAim");
+  if (ZG.isTouch){ stickMove.classList.add("show"); stickAim.classList.add("show"); }
+  function bindStick(el, knob, st){
+    el.addEventListener("pointerdown",(e)=>{
       st.active=true; st.id=e.pointerId;
       el.setPointerCapture(st.id);
       const r=el.getBoundingClientRect();
       st.cx=r.left+r.width/2; st.cy=r.top+r.height/2;
       upd(e.clientX,e.clientY);
     });
-    el.addEventListener('pointermove', (e)=>{
-      const st=joy[stateKey];
-      if (!st.active || e.pointerId!==st.id) return;
+    el.addEventListener("pointermove",(e)=>{
+      if(!st.active||e.pointerId!==st.id) return;
       upd(e.clientX,e.clientY);
     });
-    el.addEventListener('pointerup', (e)=>{
-      const st=joy[stateKey];
-      if (e.pointerId!==st.id) return;
+    el.addEventListener("pointerup",(e)=>{
+      if(e.pointerId!==st.id) return;
       st.active=false; st.id=null; st.vx=0; st.vy=0;
-      knob.style.transform='translate(0px,0px)';
+      knob.style.transform="translate(0px,0px)";
     });
     function upd(px,py){
-      const st=joy[stateKey];
       const dx=px-st.cx, dy=py-st.cy;
       const maxR=46;
       const l=Math.hypot(dx,dy);
-      const mag=clamp(l/maxR,0,1);
+      const mag = ZG.clamp(l/maxR,0,1);
       const nx=l?dx/l:0, ny=l?dy/l:0;
       st.vx=nx*mag; st.vy=ny*mag;
       knob.style.transform=`translate(${nx*mag*maxR}px,${ny*mag*maxR}px)`;
     }
   }
-  bindStick(stickMove, knobMove, 'move');
-  bindStick(stickAim, knobAim, 'aim');
+  bindStick(stickMove, knobMove, ZG.joy.move);
+  bindStick(stickAim,  knobAim,  ZG.joy.aim);
 
-  // ===== Entities =====
-  const bullets = [];
-  const enemies = [];
-  const pickups = [];
-  const particles = [];
-  const hazards = [];
-  const floaters = []; // damage numbers
+  // ----- Scene init -----
+  function initScene(){
+    ZG.fog.length=0; ZG.dust.length=0;
+    for(let i=0;i<26;i++) ZG.fog.push({ x:ZG.rand(0,ZG.world.w), y:ZG.rand(0,ZG.world.h), r:ZG.rand(200,480), vx:ZG.rand(-12,12), vy:ZG.rand(-8,8), a:ZG.rand(0.05,0.12)});
+    for(let i=0;i<160;i++) ZG.dust.push({ x:ZG.rand(0,ZG.world.w), y:ZG.rand(0,ZG.world.h), r:ZG.rand(0.8,2.2), vx:ZG.rand(-14,14), vy:ZG.rand(-14,14), a:ZG.rand(0.06,0.20)});
+  }
+  initScene();
 
-  // ===== Player / Stats =====
-  const player = {
-    x: world.w/2, y: world.h/2,
-    r: 20,
-    hpMax: 140, hp: 140,
-    shieldMax: 70, shield: 35,
-    shieldRegen: 8, shieldDelay: 1100, shieldHitAt: 0,
-    speed: 320,
-    crit: 0.12, critMul: 1.85,
-    lifesteal: 0.00,
-    magnet: 170,
-    gold: 0,
-    kills: 0,
-    // skill
-    skillCd: 0,
-    skillCdMax: 10500,
-    // weapon
-    weapon: 'AR',
-    fireCd: 0,
-    // animation
-    animT: 0,
-    faceA: 0,
+  // ----- UI helpers -----
+  function openOverlay(title, note, cards){
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent = title;
+    ZG.ui.modalNote.textContent = note || "";
+    ZG.ui.cards.innerHTML = "";
+    (cards||[]).forEach(c=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML = `<div class="t">${c.t}</div><div class="d">${c.d||""}</div>`;
+      div.onclick = c.on;
+      ZG.ui.cards.appendChild(div);
+    });
+  }
+  function closeOverlay(){ ZG.ui.overlay.classList.remove("show"); ZG.ui.cards.innerHTML=""; }
+  ZG.ui.modalClose.onclick = closeOverlay;
+
+  function togglePause(){
+    ZG.paused = !ZG.paused;
+    ZG.ui.btnPause.textContent = ZG.paused ? "暂停：开（P）" : "暂停：关（P）";
+  }
+  ZG.ui.btnPause.onclick = togglePause;
+
+  ZG.ui.btnMeta.onclick = () => {
+    ZG.mode = (ZG.mode==="battle") ? "meta" : "battle";
+    ZG.ui.mode.textContent = (ZG.mode==="battle") ? "战斗" : "局外";
+    openOverlay(ZG.mode==="meta" ? "局外养成（Part5 实装）" : "返回战斗",
+      "你要的“养成/抽卡/强化/仓库”，会在 Part 5/6 直接接进来。", []);
   };
 
-  const weapons = {
-    AR: { name:'步枪', rpm: 760, dmg: 15, spread: 2.3, speed: 1020, pierce: 0, size:4.5, burst:1, splash:0 },
-    SG: { name:'霰弹', rpm: 130, dmg: 10, spread: 18, speed: 900, pierce: 0, size:4.1, burst:7, splash:0 },
-    LASER:{ name:'激光', rpm: 260, dmg: 7, spread: 0.5, speed: 1400, pierce: 2, size:3.5, burst:1, splash:0 },
+  // ----- Core: aim / camera -----
+  ZG.getAimWorld = () => {
+    if (ZG.isTouch && (Math.abs(ZG.joy.aim.vx)+Math.abs(ZG.joy.aim.vy) > 0.08)){
+      const [nx,ny]=ZG.norm(ZG.joy.aim.vx, ZG.joy.aim.vy);
+      return { x: ZG.player.x + nx*800, y: ZG.player.y + ny*800 };
+    }
+    return { x: ZG.mouse.x + ZG.cam.x, y: ZG.mouse.y + ZG.cam.y };
   };
 
-  const meta = {
-    dmgMul: 1,
-    fireMul: 1,
-    speedMul: 1,
-    pierceAdd: 0,
-    splash: 0,
-    bulletLife: 1.15,
-    knock: 0.20,
-    freeze: 0.0,
-    burn: 0.0,
-    chain: 0,
-    coinsMul: 1,
+  // ----- Default placeholder draw (Part2 will override with colored sprites) -----
+  ZG.hook.draw.push(() => {
+    const ctx=ZG.ctx, w=ZG.w, h=ZG.h;
+    ctx.clearRect(0,0,w,h);
+
+    // ground grid + scanlines
+    const grid=86;
+    const ox=-(ZG.cam.x%grid), oy=-(ZG.cam.y%grid);
+    ctx.globalAlpha=0.16; ctx.lineWidth=1; ctx.strokeStyle="rgba(255,255,255,.18)";
+    for(let x=ox;x<w;x+=grid){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+    for(let y=oy;y<h;y+=grid){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    const t=ZG.now()/1000;
+    ctx.globalAlpha=0.06; ctx.fillStyle="rgba(255,255,255,.85)";
+    for(let k=0;k<5;k++){ const yy=((t*44+k*220)%(h+240))-120; ctx.fillRect(0,yy,w,2); }
+    ctx.globalAlpha=1;
+
+    // fog
+    for(const f of ZG.fog){
+      const px=(f.x-ZG.cam.x*0.92), py=(f.y-ZG.cam.y*0.92);
+      if(px<-700||py<-700||px>w+700||py>h+700) continue;
+      ctx.globalAlpha=f.a; ctx.beginPath(); ctx.arc(px,py,f.r,0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,.85)"; ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    // dust
+    ctx.fillStyle="rgba(255,255,255,.65)";
+    for(const d of ZG.dust){
+      const x=d.x-ZG.cam.x, y=d.y-ZG.cam.y;
+      if(x<0||y<0||x>w||y>h) continue;
+      ctx.globalAlpha=d.a; ctx.beginPath(); ctx.arc(x,y,d.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    // placeholder player
+    const px=ZG.player.x-ZG.cam.x, py=ZG.player.y-ZG.cam.y;
+    ctx.globalAlpha=0.95; ctx.beginPath(); ctx.arc(px,py,ZG.player.r,0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,.92)"; ctx.fill(); ctx.globalAlpha=1;
+    const aim=ZG.getAimWorld(); const [nx,ny]=ZG.norm(aim.x-ZG.player.x, aim.y-ZG.player.y);
+    ctx.globalAlpha=0.28; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+nx*260, py+ny*260); ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=2; ctx.stroke(); ctx.globalAlpha=1;
+  });
+
+  // ----- Default update (scene + move + camera) -----
+  ZG.hook.update.push((dt)=>{
+    const s=dt/1000;
+    for(const f of ZG.fog){
+      f.x+=f.vx*s; f.y+=f.vy*s;
+      if(f.x<-250)f.x=ZG.world.w+250; if(f.x>ZG.world.w+250)f.x=-250;
+      if(f.y<-250)f.y=ZG.world.h+250; if(f.y>ZG.world.h+250)f.y=-250;
+    }
+    for(const d of ZG.dust){
+      d.x+=d.vx*s; d.y+=d.vy*s;
+      if(d.x<0)d.x=ZG.world.w; if(d.x>ZG.world.w)d.x=0;
+      if(d.y<0)d.y=ZG.world.h; if(d.y>ZG.world.h)d.y=0;
+    }
+
+    // movement
+    let mx=0,my=0;
+    if(ZG.keys.has("w")||ZG.keys.has("arrowup")) my-=1;
+    if(ZG.keys.has("s")||ZG.keys.has("arrowdown")) my+=1;
+    if(ZG.keys.has("a")||ZG.keys.has("arrowleft")) mx-=1;
+    if(ZG.keys.has("d")||ZG.keys.has("arrowright")) mx+=1;
+    if(ZG.isTouch){ mx+=ZG.joy.move.vx; my+=ZG.joy.move.vy; }
+    if(mx||my){
+      const [nx,ny]=ZG.norm(mx,my);
+      ZG.player.x = ZG.clamp(ZG.player.x + nx*ZG.player.speed*s, 0, ZG.world.w);
+      ZG.player.y = ZG.clamp(ZG.player.y + ny*ZG.player.speed*s, 0, ZG.world.h);
+      ZG.player.animT += s;
+    } else ZG.player.animT += s*0.6;
+
+    // face aim
+    const aim=ZG.getAimWorld();
+    ZG.player.faceA = Math.atan2(aim.y-ZG.player.y, aim.x-ZG.player.x);
+
+    // camera follow + shake
+    const sx = (ZG.shake>0)? ZG.rand(-ZG.shake,ZG.shake) : 0;
+    const sy = (ZG.shake>0)? ZG.rand(-ZG.shake,ZG.shake) : 0;
+    ZG.shake = Math.max(0, ZG.shake-0.9);
+    ZG.cam.x = ZG.clamp(ZG.player.x - ZG.w/2 + sx, 0, ZG.world.w - ZG.w);
+    ZG.cam.y = ZG.clamp(ZG.player.y - ZG.h/2 + sy, 0, ZG.world.h - ZG.h);
+  });
+
+  // ----- UI refresh -----
+  ZG.hook.ui.push((evt)=>{
+    // placeholder for skill/shop; later parts will handle
+    if(evt==="shop"){
+      openOverlay("商店（Part6 完整成品化）", "先占位：Part3/4/5/6 会把割草、塔防、养成全接进来。", []);
+    }
+    if(evt==="skill"){
+      ZG.shake = Math.max(ZG.shake, 10);
+    }
+  });
+
+  // ----- main loop -----
+  let last=ZG.now();
+  let fpsT=0,fpsC=0,fps=0;
+  function tick(t){
+    requestAnimationFrame(tick);
+    const dt = Math.min(40, t-last); last=t;
+
+    if(!ZG.paused){
+      for(const fn of ZG.hook.update) fn(dt);
+      for(const fn of ZG.modules) fn(dt); // reserved
+    }
+    for(const fn of ZG.hook.draw) fn(dt);
+
+    // hud
+    ZG.ui.hp.textContent = Math.ceil(ZG.player.hp);
+    ZG.ui.hpMax.textContent = Math.ceil(ZG.player.hpMax);
+    ZG.ui.sh.textContent = Math.ceil(ZG.player.sh);
+    ZG.ui.gold.textContent = ZG.player.gold|0;
+    ZG.ui.wave.textContent = ZG.combat.wave|0;
+    ZG.ui.left.textContent = ZG.combat.left|0;
+    ZG.ui.kills.textContent = ZG.player.kills|0;
+
+    fpsT+=dt; fpsC++;
+    if(fpsT>500){ fps=Math.round(fpsC*1000/fpsT); fpsT=0; fpsC=0; ZG.ui.fps.textContent=String(fps); }
+  }
+  ZG.ui.btnPause.textContent="暂停：关（P）";
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
+<script>
+(() => {
+  const ZG = window.ZG; if(!ZG) return;
+
+  // ===== Part2: 彩色“精灵绘制”(程序绘制=彩图，不靠外链) =====
+  const P = {
+    player:{ body:"#38bdf8", head:"#ffd4b8", hair:"#0f172a", pants:"#1f2a44", gun:"#c7d2fe" },
+    zWalk :{ body:"#34d399", head:"#b9fbc0", cloth:"#0f172a" },
+    zFast :{ body:"#a78bfa", head:"#ddd6fe" },
+    zTank :{ body:"#fb923c", head:"#fed7aa" },
+    boss  :{ body:"#fb7185", head:"#fecaca" },
   };
 
-  function calcDps(){
-    const w=weapons[player.weapon];
-    const shotsPerSec=(w.rpm/60)*meta.fireMul;
-    const perShot=w.dmg*meta.dmgMul;
-    return (shotsPerSec*perShot*w.burst).toFixed(0);
+  function drawShadow(ctx,r){
+    ctx.globalAlpha=0.22;
+    ctx.beginPath(); ctx.ellipse(0, r*1.2, r*1.05, r*0.45, 0, 0, Math.PI*2);
+    ctx.fillStyle="#000"; ctx.fill(); ctx.globalAlpha=1;
   }
 
-  // ===== Waves =====
-  let wave = 1;
-  let waveState = 'fight';
-  let waveLeft = 0;
-  let spawnTimer = 0;
-  let spawnRate = 0.85;
-  let waveBoss = false;
+  function drawHumanoid(ctx, r, pal, frame, isZombie=false){
+    // frame: 0..5 walk bob
+    const bob = Math.sin(frame*0.9)*2.2;
+    const legA = Math.sin(frame*0.9)*0.55;
+    drawShadow(ctx, r);
 
+    // legs
+    ctx.save();
+    ctx.translate(0, r*0.55 + bob);
+    ctx.strokeStyle = pal.pants || "#1f2a44";
+    ctx.lineWidth = r*0.28; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(-r*0.20,0); ctx.lineTo(-r*0.55 + legA*4, r*0.85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( r*0.20,0); ctx.lineTo( r*0.55 - legA*4, r*0.85); ctx.stroke();
+    ctx.restore();
+
+    // body
+    ctx.save();
+    ctx.translate(0, bob);
+    ctx.beginPath(); ctx.arc(0, r*0.10, r*0.70, 0, Math.PI*2);
+    ctx.fillStyle = pal.body; ctx.fill();
+    ctx.restore();
+
+    // head
+    ctx.save();
+    ctx.translate(0, -r*0.85 + bob*0.6);
+    ctx.beginPath(); ctx.arc(0, 0, r*0.52, 0, Math.PI*2);
+    ctx.fillStyle = pal.head; ctx.fill();
+    // hair / top
+    if(pal.hair){
+      ctx.beginPath();
+      ctx.moveTo(-r*0.55, -r*0.05);
+      ctx.quadraticCurveTo(0, -r*0.95, r*0.55, -r*0.05);
+      ctx.closePath();
+      ctx.fillStyle = pal.hair; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1;
+    }
+    // eyes
+    ctx.fillStyle="#0b1020"; ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.arc(-r*0.18, -r*0.05, r*0.09, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*0.18,  0.00, r*0.09, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.restore();
+
+    // arms
+    ctx.save();
+    ctx.translate(0, bob);
+    ctx.strokeStyle = pal.head; ctx.lineWidth=r*0.22; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(-r*0.55, 0); ctx.lineTo(-r*0.95, r*0.18 + legA*3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( r*0.55, 0); ctx.lineTo( r*0.95, r*0.18 - legA*3); ctx.stroke();
+    ctx.restore();
+
+    // gun for player only
+    if(pal.gun){
+      ctx.save();
+      ctx.translate(r*0.95, bob*0.7);
+      ctx.fillStyle = pal.gun; ctx.globalAlpha=0.95;
+      ctx.fillRect(0, -r*0.12, r*0.58, r*0.24);
+      ctx.globalAlpha=0.7; ctx.fillStyle="#0b1020";
+      ctx.fillRect(r*0.28, -r*0.20, r*0.20, r*0.10);
+      ctx.restore();
+    }
+
+    // zombie cracks (small)
+    if(isZombie){
+      ctx.save();
+      ctx.translate(0, -r*0.85);
+      ctx.strokeStyle="rgba(0,0,0,.18)";
+      ctx.lineWidth=r*0.06;
+      ctx.beginPath(); ctx.moveTo(-r*0.25, r*0.10); ctx.lineTo(-r*0.40, r*0.30); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawBoss(ctx, r, frame){
+    const pal=P.boss;
+    const bob = Math.sin(frame*0.6)*3.5;
+    drawShadow(ctx, r*1.15);
+
+    ctx.save();
+    ctx.translate(0, bob);
+    // body
+    ctx.beginPath(); ctx.arc(0, r*0.10, r*1.05, 0, Math.PI*2);
+    ctx.fillStyle = pal.body; ctx.globalAlpha=0.95; ctx.fill(); ctx.globalAlpha=1;
+
+    // head
+    ctx.beginPath(); ctx.arc(0, -r*1.05, r*0.65, 0, Math.PI*2);
+    ctx.fillStyle = pal.head; ctx.fill();
+
+    // horns
+    ctx.globalAlpha=0.55; ctx.fillStyle="#0f172a";
+    ctx.beginPath(); ctx.moveTo(-r*0.35, -r*1.75); ctx.lineTo(-r*0.85, -r*1.25); ctx.lineTo(-r*0.25, -r*1.20); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo( r*0.35, -r*1.75); ctx.lineTo( r*0.85, -r*1.25); ctx.lineTo( r*0.25, -r*1.20); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+
+    // face
+    ctx.fillStyle="#0b1020"; ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.arc(-r*0.18, -r*1.12, r*0.10, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*0.18, -r*1.07, r*0.10, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+
+    // arms
+    ctx.strokeStyle = pal.head; ctx.lineWidth=r*0.28; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(-r*1.0, r*0.00); ctx.lineTo(-r*1.45, r*0.40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( r*1.0, r*0.00); ctx.lineTo( r*1.45, r*0.40); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // demo enemies in part2 (will be replaced by part3 spawner)
+  if(ZG.ent.enemies.length===0){
+    const c={x:ZG.world.w/2,y:ZG.world.h/2};
+    const kinds=["walk","fast","tank","boss"];
+    for(let i=0;i<10;i++){
+      const k=kinds[i%kinds.length];
+      ZG.ent.enemies.push({ kind:k, x:c.x+ZG.rand(-520,520), y:c.y+ZG.rand(-380,380),
+        r:(k==="boss")?60:(k==="tank"?36:(k==="fast"?24:26)),
+        speed:(k==="boss")?70:(k==="tank"?70:(k==="fast"?170:105)),
+        faceA:ZG.rand(0,Math.PI*2), animT:ZG.rand(0,10),
+        hp:100,hpMax:100 });
+    }
+  }
+
+  // override draw hook: insert colored sprites after scene draw, but keep scene from Part1
+  // We do it by pushing a draw hook that draws entities after Part1 background.
+  ZG.hook.draw.push(() => {
+    const ctx=ZG.ctx, w=ZG.w, h=ZG.h;
+
+    // draw enemies
+    for(const e of ZG.ent.enemies){
+      // demo follow
+      const dx=ZG.player.x-e.x, dy=ZG.player.y-e.y;
+      const [nx,ny]=ZG.norm(dx,dy);
+      e.x += nx*e.speed*0.016;
+      e.y += ny*e.speed*0.016;
+      e.faceA = Math.atan2(ny,nx);
+      e.animT += 0.016;
+
+      const sx=e.x-ZG.cam.x, sy=e.y-ZG.cam.y;
+      if(sx<-200||sy<-200||sx>w+200||sy>h+200) continue;
+
+      ctx.save();
+      ctx.translate(sx,sy);
+      ctx.rotate(e.faceA);
+      const f=e.animT*10;
+      if(e.kind==="boss") drawBoss(ctx, e.r, f);
+      else if(e.kind==="tank") drawHumanoid(ctx, e.r, P.zTank, f, true);
+      else if(e.kind==="fast") drawHumanoid(ctx, e.r, P.zFast, f, true);
+      else drawHumanoid(ctx, e.r, P.zWalk, f, true);
+      ctx.restore();
+
+      // hp bar
+      const bw=e.r*2.0, bh=7;
+      const hpP=ZG.clamp(e.hp/e.hpMax,0,1);
+      ctx.globalAlpha=0.75;
+      ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(sx-bw/2, sy-e.r-24, bw, bh);
+      ctx.fillStyle="rgba(255,255,255,.72)"; ctx.fillRect(sx-bw/2, sy-e.r-24, bw*hpP, bh);
+      ctx.globalAlpha=1;
+    }
+
+    // draw player (replaces white dot visually — we just draw on top)
+    const px=ZG.player.x-ZG.cam.x, py=ZG.player.y-ZG.cam.y;
+    ctx.save();
+    ctx.translate(px,py);
+    ctx.rotate(ZG.player.faceA);
+    drawHumanoid(ctx, ZG.player.r, P.player, ZG.player.animT*10, false);
+    ctx.restore();
+  });
+})();
+</script>
+<script>
+(() => {
+  const ZG = window.ZG; if(!ZG) return;
+
+  // ===== Part3: Roguelike Survivors Combat =====
+  // remove demo enemies
+  ZG.ent.enemies.length = 0;
+
+  const combat = ZG.combat;
+  combat.wave = 1;
+  combat.left = 0;
+  combat.state = "fight";
+
+  // weapon + build
+  const WPN = {
+    AR:{ name:"步枪", rpm:760, dmg:15, spread:0.05, speed:1100, pierce:0, burst:1 },
+    SG:{ name:"霰弹", rpm:130, dmg:10, spread:0.35, speed:950,  pierce:0, burst:7 },
+    LAS:{name:"激光", rpm:260, dmg:7,  spread:0.02, speed:1400, pierce:2, burst:1 },
+  };
+  ZG.build = {
+    wpn:"AR",
+    dmgMul:1, fireMul:1, speedMul:1,
+    pierceAdd:0, splash:0, chain:0,
+    crit:0.12, critMul:1.85,
+    freeze:0, burn:0,
+    magnet:170,
+    skillCd:10500, skillT:0,
+  };
+
+  function dps(){
+    const w=WPN[ZG.build.wpn];
+    const sps=(w.rpm/60)*ZG.build.fireMul;
+    return Math.floor(sps*w.dmg*ZG.build.dmgMul*w.burst);
+  }
+
+  // spawner
   function startWave(n){
-    wave = n;
-    waveState = 'fight';
-    waveBoss = (wave % 5 === 0);
-    waveLeft = Math.floor(22 + wave*7 + (waveBoss? 1:0));
-    spawnTimer = 0;
-    spawnRate = Math.max(0.20, 0.92 - wave*0.032);
-    waveEl.textContent = wave;
+    combat.wave=n; ZG.ui.wave.textContent=String(n);
+    combat.state="fight";
+    const boss = (n%5===0);
+    combat.left = Math.floor(22 + n*7 + (boss?1:0));
+    ZG.ui.left.textContent=String(combat.left);
+    combat.spawnRate = Math.max(0.20, 0.92 - n*0.032);
+    combat.spawnT = 0;
+    combat.bossPending = boss;
+  }
+  startWave(1);
+
+  function spawnEnemy(kind){
+    const ang=ZG.rand(0,Math.PI*2);
+    const dist=ZG.rand(720,980);
+    const x=ZG.clamp(ZG.player.x+Math.cos(ang)*dist, 0, ZG.world.w);
+    const y=ZG.clamp(ZG.player.y+Math.sin(ang)*dist, 0, ZG.world.h);
+
+    const n=combat.wave;
+    const baseHp = 54 + n*13;
+    const e={ kind, x,y, faceA:0, animT:ZG.rand(0,10), hit:0, frozen:0, burn:0 };
+    if(kind==="walk"){ e.r=26; e.speed=105+n*2.6; e.hp=e.hpMax=baseHp; e.dmg=14; }
+    if(kind==="fast"){ e.r=24; e.speed=170+n*3.2; e.hp=e.hpMax=38+n*10; e.dmg=12; }
+    if(kind==="tank"){ e.r=36; e.speed=70+n*1.4;  e.hp=e.hpMax=170+n*34; e.dmg=22; }
+    if(kind==="boss"){ e.r=60; e.speed=70+n*1.1;  e.hp=e.hpMax=1300+n*250; e.dmg=28; e.boss=true; e.summonT=1700; e.slamT=1900; }
+    ZG.ent.enemies.push(e);
   }
 
-  // ===== Spawning =====
-  function spawnEnemy(type='walker'){
-    const angle = rand(0, Math.PI*2);
-    const dist = rand(720, 980);
-    let x = clamp(player.x + Math.cos(angle)*dist, 0, world.w);
-    let y = clamp(player.y + Math.sin(angle)*dist, 0, world.h);
-
-    const baseHp = 54 + wave*13;
-    let e = {
-      type,
-      x,y,
-      hp: baseHp, hpMax: baseHp,
-      r: 22,
-      speed: 120 + wave*2.6,
-      dmg: 14,
-      hit: 0,
-      frozen: 0,
-      burn: 0,
-      boss:false,
-      animT: rand(0,10),
-      faceA: rand(0,Math.PI*2),
-      shootCd: rand(600, 1300),
-      summonCd: 1700,
-      slamCd: 1900,
-    };
-
-    if (type==='runner'){
-      e.hp = e.hpMax = 38 + wave*10;
-      e.r = 19;
-      e.speed = 205 + wave*3.2;
-      e.dmg = 12;
-    }
-    if (type==='tank'){
-      e.hp = e.hpMax = 170 + wave*34;
-      e.r = 30;
-      e.speed = 85 + wave*1.4;
-      e.dmg = 22;
-    }
-    if (type==='spitter'){
-      e.hp = e.hpMax = 70 + wave*15;
-      e.r = 22;
-      e.speed = 110 + wave*2.1;
-      e.dmg = 10;
-    }
-    if (type==='boss'){
-      e.hp = e.hpMax = 1300 + wave*250;
-      e.r = 52;
-      e.speed = 95 + wave*1.1;
-      e.dmg = 28;
-      e.boss = true;
-    }
-
-    enemies.push(e);
-  }
-
-  function spawnLogic(dt){
-    if (waveState!=='fight') return;
-    spawnTimer -= dt;
-    if (spawnTimer > 0) return;
-    spawnTimer = spawnRate * 1000;
-
-    if (waveLeft <= 0) return;
-
-    const r = Math.random();
-    let type='walker';
-    if (waveBoss && waveLeft === 1){
-      type='boss';
-    } else if (r < Math.min(0.12, 0.05+wave*0.006)) type='tank';
-    else if (r < Math.min(0.30, 0.14+wave*0.008)) type='spitter';
-    else if (r < Math.min(0.58, 0.22+wave*0.012)) type='runner';
-
-    spawnEnemy(type);
-    waveLeft--;
-    leftEl.textContent = waveLeft;
-  }
-
-  // ===== Aim =====
-  function getAimWorld(){
-    if (isTouch && (Math.abs(joy.aim.vx)+Math.abs(joy.aim.vy) > 0.08)){
-      const [nx,ny]=norm(joy.aim.vx, joy.aim.vy);
-      return { x: player.x + nx*700, y: player.y + ny*700 };
-    }
-    if (enemies.length){
-      let best=null, bd=1e18;
-      for (const e of enemies){
-        const d=(e.x-player.x)**2+(e.y-player.y)**2;
-        if (d<bd){ bd=d; best=e; }
-      }
-      if (best) return { x: best.x, y: best.y };
-    }
-    return { x: mouse.x + cam.x, y: mouse.y + cam.y };
-  }
-
-  // ===== Shooting =====
+  // bullets / pickups / particles are already in ent
   function fire(dt){
-    const w = weapons[player.weapon];
-    const shotsPerMs = (w.rpm/60) * meta.fireMul / 1000;
-    const cdMs = 1 / shotsPerMs;
-    player.fireCd -= dt;
-    if (player.fireCd > 0) return;
-    player.fireCd = cdMs;
+    const w=WPN[ZG.build.wpn];
+    const sps=(w.rpm/60)*ZG.build.fireMul;
+    const cd=1000/Math.max(0.001,sps);
+    ZG.build.fireT=(ZG.build.fireT||0)-dt;
+    if(ZG.build.fireT>0) return;
+    ZG.build.fireT=cd;
 
-    const aim = getAimWorld();
-    const dx = aim.x - player.x;
-    const dy = aim.y - player.y;
-    const [nx,ny]=norm(dx,dy);
-    const angBase = Math.atan2(ny,nx);
-    player.faceA = angBase;
-
-    const spread = (w.spread*Math.PI/180);
-    for (let i=0;i<w.burst;i++){
-      const a = angBase + (Math.random()*2-1)*spread;
-      const vx = Math.cos(a)*w.speed;
-      const vy = Math.sin(a)*w.speed;
-
-      bullets.push({
-        x: player.x + Math.cos(a)*(player.r+10),
-        y: player.y + Math.sin(a)*(player.r+10),
-        vx,vy,
-        r: w.size,
-        life: meta.bulletLife,
-        dmg: w.dmg * meta.dmgMul,
-        pierce: w.pierce + meta.pierceAdd,
-        splash: Math.max(w.splash, meta.splash),
-        chain: meta.chain
-      });
-    }
-
-    // muzzle flash particles
-    for (let k=0;k<3;k++){
-      particles.push({
-        x: player.x + nx*(player.r+12) + rand(-4,4),
-        y: player.y + ny*(player.r+12) + rand(-4,4),
-        vx: nx*rand(80,140)+rand(-60,60),
-        vy: ny*rand(80,140)+rand(-60,60),
-        r: rand(1.4,3.0),
-        a: 1, life: rand(0.10,0.20)
-      });
-    }
-  }
-
-  // ===== Skill =====
-  function trySkill(){
-    if (paused || waveState==='between') return;
-    if (player.skillCd > 0) return;
-
-    player.skillCd = player.skillCdMax;
-    const radius = 300;
-    shake = Math.max(shake, 18);
-
-    hazards.push({ type:'storm', x:player.x, y:player.y, r: radius, t:0, life:0.85 });
-
-    for (const e of enemies){
-      const d = Math.hypot(e.x-player.x, e.y-player.y);
-      if (d < radius){
-        e.frozen = Math.max(e.frozen, 1.1);
-        damageEnemy(e, 34 + wave*1.7, { knock: 0.55, from:'skill', chain: meta.chain });
+    // aim at nearest
+    let tx=ZG.getAimWorld().x, ty=ZG.getAimWorld().y;
+    if(ZG.ent.enemies.length){
+      let best=null,bd=1e18;
+      for(const e of ZG.ent.enemies){
+        const d=(e.x-ZG.player.x)**2+(e.y-ZG.player.y)**2;
+        if(d<bd){ bd=d; best=e; }
       }
+      if(best){ tx=best.x; ty=best.y; }
     }
-  }
+    const [nx,ny]=ZG.norm(tx-ZG.player.x, ty-ZG.player.y);
+    const baseA=Math.atan2(ny,nx);
+    ZG.player.faceA=baseA;
 
-  // ===== Damage / Effects =====
-  function addFloatText(x,y,text){
-    floaters.push({ x,y, vy:-40, life:0.85, a:1, text });
-  }
-
-  function damageEnemy(e, dmg, opt={}){
-    const crit = (Math.random() < player.crit);
-    const final = crit ? dmg * player.critMul : dmg;
-    e.hp -= final;
-    e.hit = 0.08;
-
-    addFloatText(e.x, e.y - e.r - 6, (crit? '✦ ':'') + Math.floor(final));
-
-    // knockback
-    const k = opt.knock ?? meta.knock;
-    if (k > 0){
-      const dx = e.x - player.x, dy = e.y - player.y;
-      const [nx,ny]=norm(dx,dy);
-      e.x += nx * (k*22);
-      e.y += ny * (k*22);
-    }
-
-    if (meta.freeze > 0 && Math.random() < meta.freeze) e.frozen = Math.max(e.frozen, 0.75);
-    if (meta.burn > 0 && Math.random() < meta.burn) e.burn = Math.max(e.burn, 1.45);
-
-    // hit particles
-    for (let i=0;i<6;i++){
-      particles.push({
-        x: e.x + rand(-8,8), y: e.y + rand(-8,8),
-        vx: rand(-150,150), vy: rand(-150,150),
-        r: rand(1.6,3.8),
-        a: 1, life: rand(0.18,0.36)
+    for(let i=0;i<w.burst;i++){
+      const a=baseA + (Math.random()*2-1)*w.spread;
+      ZG.ent.bullets.push({
+        x:ZG.player.x+Math.cos(a)*(ZG.player.r+14),
+        y:ZG.player.y+Math.sin(a)*(ZG.player.r+14),
+        vx:Math.cos(a)*w.speed,
+        vy:Math.sin(a)*w.speed,
+        r:4.5,
+        life:1.15,
+        dmg:w.dmg*ZG.build.dmgMul,
+        pierce:w.pierce+ZG.build.pierceAdd,
       });
     }
+  }
 
-    // lifesteal
-    if (player.lifesteal > 0){
-      const heal = final * player.lifesteal * 0.18;
-      player.hp = clamp(player.hp + heal, 0, player.hpMax);
-    }
+  function hurtEnemy(e, dmg, from){
+    const crit = (Math.random() < ZG.build.crit);
+    const fin = crit ? dmg*ZG.build.critMul : dmg;
+    e.hp -= fin; e.hit=0.08;
+
+    // status
+    if(ZG.build.freeze>0 && Math.random()<ZG.build.freeze) e.frozen=Math.max(e.frozen,0.75);
+    if(ZG.build.burn>0   && Math.random()<ZG.build.burn)   e.burn=Math.max(e.burn,1.45);
+
+    // float text
+    ZG.ent.floaters.push({ x:e.x, y:e.y-e.r-10, vy:-40, life:0.85, a:1, text:(crit?"✦ ":"")+Math.floor(fin) });
 
     // chain lightning
-    const chains = opt.chain ?? 0;
-    if (chains > 0){
-      chainLightning(e, chains, final*0.55);
-    }
-  }
-
-  function chainLightning(fromE, chains, dmg){
-    let cur = fromE;
-    for (let i=0;i<chains;i++){
-      let best=null, bd=1e18;
-      for (const e of enemies){
-        if (e===cur) continue;
-        const d=(e.x-cur.x)**2+(e.y-cur.y)**2;
-        if (d < bd && d < 280*280){ bd=d; best=e; }
-      }
-      if (!best) break;
-      for (let k=0;k<14;k++){
-        const t=k/14;
-        particles.push({
-          x: lerp(cur.x,best.x,t)+rand(-7,7),
-          y: lerp(cur.y,best.y,t)+rand(-7,7),
-          vx:0,vy:0,r:rand(1.1,2.4),a:1,life:rand(0.06,0.12)
-        });
-      }
-      damageEnemy(best, dmg, { from:'chain' });
-      cur = best;
-    }
-  }
-
-  // ===== Pickups =====
-  function dropLoot(e){
-    const gBase = e.boss ? 22 : (e.type==='tank'? 7 : (e.type==='runner'? 3 : 5));
-    const g = Math.floor(gBase * meta.coinsMul);
-    pickups.push({ x:e.x, y:e.y, r:9, type:'gold', val:g });
-    if (Math.random() < 0.10) pickups.push({ x:e.x+rand(-10,10), y:e.y+rand(-10,10), r:8, type:'heal', val: 12 });
-  }
-
-  function collectPickups(dt){
-    for (let i=pickups.length-1;i>=0;i--){
-      const p = pickups[i];
-      const dx = player.x - p.x, dy = player.y - p.y;
-      const d = Math.hypot(dx,dy);
-      if (d < player.magnet){
-        const [nx,ny]=norm(dx,dy);
-        p.x += nx * (400 + (player.magnet-d)*3) * dt/1000;
-        p.y += ny * (400 + (player.magnet-d)*3) * dt/1000;
-      }
-      if (d < player.r + p.r + 6){
-        if (p.type==='gold') player.gold += p.val;
-        if (p.type==='heal') player.hp = clamp(player.hp + p.val, 0, player.hpMax);
-        pickups.splice(i,1);
-      }
-    }
-  }
-
-  // ===== Enemy AI =====
-  function enemyUpdate(dt){
-    for (let i=enemies.length-1;i>=0;i--){
-      const e = enemies[i];
-      e.animT += dt/1000;
-
-      if (e.frozen>0) e.frozen -= dt/1000;
-      if (e.burn>0){
-        e.burn -= dt/1000;
-        if (Math.random() < 0.18){
-          damageEnemy(e, 2.0 + wave*0.06, { from:'burn' });
+    if(ZG.build.chain>0 && Math.random()<0.55){
+      let cur=e;
+      for(let i=0;i<ZG.build.chain;i++){
+        let best=null,bd=1e18;
+        for(const ee of ZG.ent.enemies){
+          if(ee===cur) continue;
+          const d=(ee.x-cur.x)**2+(ee.y-cur.y)**2;
+          if(d<bd && d<280*280){ bd=d; best=ee; }
         }
-      }
-      if (e.hit>0) e.hit -= dt/1000;
-
-      const slow = e.frozen>0 ? 0.45 : 1;
-      const dx = player.x - e.x, dy = player.y - e.y;
-      const [nx,ny]=norm(dx,dy);
-      e.x += nx * e.speed * slow * dt/1000;
-      e.y += ny * e.speed * slow * dt/1000;
-      e.faceA = Math.atan2(ny,nx);
-
-      // Spitter
-      if (e.type==='spitter'){
-        e.shootCd -= dt;
-        if (e.shootCd <= 0){
-          e.shootCd = rand(900, 1400);
-          hazards.push({ type:'spit', x:e.x, y:e.y, vx:nx*560, vy:ny*560, r:8, life:1.25, dmg: 10 + wave*0.5 });
+        if(!best) break;
+        // lightning particles line
+        for(let k=0;k<12;k++){
+          const t=k/12;
+          ZG.ent.particles.push({ x:ZG.lerp(cur.x,best.x,t)+ZG.rand(-6,6), y:ZG.lerp(cur.y,best.y,t)+ZG.rand(-6,6), vx:0,vy:0,r:ZG.rand(1.1,2.4), a:1, life:ZG.rand(0.06,0.12) });
         }
+        best.hp -= fin*0.45;
+        cur=best;
       }
+    }
 
-      // Boss
-      if (e.boss){
-        e.summonCd -= dt;
-        if (e.summonCd<=0){
-          e.summonCd = rand(1400, 1900);
-          for (let k=0;k<2;k++) spawnEnemy(Math.random()<0.5?'runner':'walker');
-        }
-        e.slamCd -= dt;
-        if (e.slamCd<=0){
-          e.slamCd = rand(1600, 2300);
-          hazards.push({ type:'slam', x:e.x, y:e.y, r: 160, t:0, life:0.95, dmg: 18 + wave*0.7 });
-        }
-      }
-
-      // collide
-      const d = Math.hypot(player.x-e.x, player.y-e.y);
-      if (d < player.r + e.r){
-        hitPlayer(e.dmg);
-        e.x -= nx*10; e.y -= ny*10;
-      }
-
-      if (e.hp <= 0){
-        player.kills++;
-        dropLoot(e);
-        shake = Math.max(shake, 12);
-        for (let k=0;k<24;k++){
-          particles.push({ x:e.x, y:e.y, vx:rand(-260,260), vy:rand(-260,260), r:rand(1.6,4.2), a:1, life:rand(0.22,0.60) });
-        }
-        enemies.splice(i,1);
+    // splash
+    if(ZG.build.splash>0){
+      const R=ZG.build.splash;
+      for(const ee of ZG.ent.enemies){
+        if(ee===e) continue;
+        const d=Math.hypot(ee.x-e.x, ee.y-e.y);
+        if(d<R) ee.hp -= fin*0.25;
       }
     }
   }
 
-  function hitPlayer(dmg){
-    player.shieldHitAt = now();
-    let left = dmg;
-    if (player.shield > 0){
-      const use = Math.min(player.shield, left);
-      player.shield -= use;
-      left -= use;
-    }
-    if (left > 0){
-      player.hp = clamp(player.hp - left, 0, player.hpMax);
-    }
-    addFloatText(player.x, player.y - 44, '-' + Math.floor(dmg));
-    shake = Math.max(shake, 9);
-    if (player.hp <= 0) gameOver();
-  }
-
-  // ===== Bullets =====
   function bulletsUpdate(dt){
-    for (let i=bullets.length-1;i>=0;i--){
-      const b = bullets[i];
-      b.x += b.vx * dt/1000;
-      b.y += b.vy * dt/1000;
+    for(let i=ZG.ent.bullets.length-1;i>=0;i--){
+      const b=ZG.ent.bullets[i];
+      b.x += b.vx*dt/1000;
+      b.y += b.vy*dt/1000;
       b.life -= dt/1000;
+      if(b.life<=0){ ZG.ent.bullets.splice(i,1); continue; }
 
-      if (b.life<=0 || b.x<-200 || b.y<-200 || b.x>world.w+200 || b.y>world.h+200){
-        bullets.splice(i,1);
-        continue;
-      }
-
-      for (let j=enemies.length-1;j>=0;j--){
-        const e=enemies[j];
-        const d = Math.hypot(b.x-e.x, b.y-e.y);
-        if (d < b.r + e.r){
-          if (b.splash > 0){
-            const R = b.splash;
-            for (const ee of enemies){
-              const dd = Math.hypot(ee.x-b.x, ee.y-b.y);
-              if (dd < R){
-                damageEnemy(ee, b.dmg*0.65, { knock: 0.30, chain: b.chain });
-              }
-            }
-            hazards.push({ type:'ring', x:b.x, y:b.y, r:R, t:0, life:0.20 });
-          } else {
-            damageEnemy(e, b.dmg, { knock: 0.30, chain: b.chain });
-          }
-
-          b.pierce -= 1;
-          if (b.pierce < 0){
-            bullets.splice(i,1);
-          }
+      for(let j=ZG.ent.enemies.length-1;j>=0;j--){
+        const e=ZG.ent.enemies[j];
+        const d=Math.hypot(b.x-e.x, b.y-e.y);
+        if(d < b.r + e.r){
+          hurtEnemy(e, b.dmg, "bullet");
+          b.pierce--;
+          if(b.pierce<0){ ZG.ent.bullets.splice(i,1); }
           break;
         }
       }
     }
   }
 
-  // ===== Hazards =====
-  function hazardsUpdate(dt){
-    for (let i=hazards.length-1;i>=0;i--){
-      const h=hazards[i];
-      h.life -= dt/1000;
-      if (h.life<=0){ hazards.splice(i,1); continue; }
+  function enemyUpdate(dt){
+    const s=dt/1000;
+    for(let i=ZG.ent.enemies.length-1;i>=0;i--){
+      const e=ZG.ent.enemies[i];
+      e.animT += s*1.0;
+      if(e.hit>0) e.hit -= s;
+      if(e.frozen>0) e.frozen -= s;
+      if(e.burn>0){
+        e.burn -= s;
+        if(Math.random()<0.18) e.hp -= (2.0 + combat.wave*0.06);
+      }
 
-      if (h.type==='spit'){
-        h.x += h.vx * dt/1000;
-        h.y += h.vy * dt/1000;
-        const d = Math.hypot(player.x-h.x, player.y-h.y);
-        if (d < player.r + h.r){
-          hitPlayer(h.dmg);
-          hazards.splice(i,1);
-        }
+      // boss abilities (slam/summon)
+      if(e.boss){
+        e.summonT -= dt; e.slamT -= dt;
+        if(e.summonT<=0){ e.summonT=ZG.rand(1400,1900); for(let k=0;k<2;k++) spawnEnemy(Math.random()<0.5?"fast":"walk"); }
+        if(e.slamT<=0){ e.slamT=ZG.rand(1600,2300); ZG.ent.traps.push({ type:"slam", x:e.x, y:e.y, r:160, t:0, life:0.95, dmg:18+combat.wave*0.75 }); }
       }
-      if (h.type==='slam'){
-        h.t = (h.t||0) + dt/1000;
-        if (!h.did && h.t > 0.66){
-          h.did = true;
-          const d = Math.hypot(player.x-h.x, player.y-h.y);
-          if (d < h.r) hitPlayer(h.dmg);
-          shake = Math.max(shake, 18);
-          for (let k=0;k<36;k++){
-            particles.push({ x:h.x, y:h.y, vx:rand(-340,340), vy:rand(-340,340), r:rand(1.8,4.4), a:1, life:rand(0.22,0.62) });
-          }
-        }
+
+      const dx=ZG.player.x-e.x, dy=ZG.player.y-e.y;
+      const [nx,ny]=ZG.norm(dx,dy);
+      const slow = e.frozen>0 ? 0.45 : 1;
+      e.x += nx*e.speed*slow*s;
+      e.y += ny*e.speed*slow*s;
+      e.faceA = Math.atan2(ny,nx);
+
+      // collide player
+      const dist=Math.hypot(ZG.player.x-e.x, ZG.player.y-e.y);
+      if(dist < ZG.player.r + e.r){
+        hitPlayer(e.dmg);
+        e.x -= nx*10; e.y -= ny*10;
       }
-      if (h.type==='storm'){
-        h.t = (h.t||0) + dt/1000;
-        if (Math.random()<0.40){
-          particles.push({ x: h.x+rand(-h.r,h.r), y:h.y+rand(-h.r,h.r), vx:rand(-90,90), vy:rand(-90,90), r:rand(1.1,2.7), a:1, life:rand(0.06,0.16) });
-        }
-      }
-      if (h.type==='ring'){
-        h.t = (h.t||0) + dt/1000;
+
+      // death
+      if(e.hp<=0){
+        ZG.player.kills++;
+        dropLoot(e);
+        ZG.shake = Math.max(ZG.shake, 12);
+        for(let k=0;k<22;k++) ZG.ent.particles.push({ x:e.x, y:e.y, vx:ZG.rand(-260,260), vy:ZG.rand(-260,260), r:ZG.rand(1.6,4.2), a:1, life:ZG.rand(0.22,0.60) });
+        ZG.ent.enemies.splice(i,1);
       }
     }
   }
 
-  // ===== Particles / Floaters / Scene =====
+  function hitPlayer(dmg){
+    ZG.player.shHitAt = ZG.now();
+    let left=dmg;
+    if(ZG.player.sh>0){ const use=Math.min(ZG.player.sh,left); ZG.player.sh-=use; left-=use; }
+    if(left>0){ ZG.player.hp = ZG.clamp(ZG.player.hp-left,0,ZG.player.hpMax); }
+    ZG.ent.floaters.push({ x:ZG.player.x, y:ZG.player.y-48, vy:-40, life:0.85, a:1, text:"-"+Math.floor(dmg) });
+    ZG.shake = Math.max(ZG.shake, 9);
+    if(ZG.player.hp<=0) gameOver();
+  }
+
+  function dropLoot(e){
+    const gBase = e.boss?22:(e.kind==="tank"?7:(e.kind==="fast"?3:5));
+    const g = Math.floor(gBase*(1+ZG.meta.perm.gold*0.05));
+    ZG.ent.pickups.push({ x:e.x, y:e.y, r:9, type:"gold", val:g });
+    if(Math.random()<0.10) ZG.ent.pickups.push({ x:e.x+ZG.rand(-10,10), y:e.y+ZG.rand(-10,10), r:8, type:"heal", val:12 });
+  }
+
+  function pickupsUpdate(dt){
+    const s=dt/1000;
+    const mag = ZG.build.magnet;
+    for(let i=ZG.ent.pickups.length-1;i>=0;i--){
+      const p=ZG.ent.pickups[i];
+      const dx=ZG.player.x-p.x, dy=ZG.player.y-p.y;
+      const d=Math.hypot(dx,dy);
+      if(d<mag){
+        const [nx,ny]=ZG.norm(dx,dy);
+        p.x += nx*(420+(mag-d)*3)*s;
+        p.y += ny*(420+(mag-d)*3)*s;
+      }
+      if(d<ZG.player.r+p.r+6){
+        if(p.type==="gold") ZG.player.gold += p.val;
+        if(p.type==="heal") ZG.player.hp = ZG.clamp(ZG.player.hp+p.val,0,ZG.player.hpMax);
+        ZG.ent.pickups.splice(i,1);
+      }
+    }
+  }
+
+  function trapsUpdate(dt){
+    const s=dt/1000;
+    for(let i=ZG.ent.traps.length-1;i>=0;i--){
+      const t=ZG.ent.traps[i];
+      t.life -= s;
+      if(t.type==="slam"){ t.t += s; if(!t.did && t.t>0.66){ t.did=true; if(Math.hypot(ZG.player.x-t.x, ZG.player.y-t.y)<t.r) hitPlayer(t.dmg); ZG.shake=Math.max(ZG.shake,18); } }
+      if(t.life<=0) ZG.ent.traps.splice(i,1);
+    }
+  }
+
   function particlesUpdate(dt){
-    for (let i=particles.length-1;i>=0;i--){
-      const p=particles[i];
-      p.life -= dt/1000;
-      if (p.life<=0){ particles.splice(i,1); continue; }
-      p.x += (p.vx||0) * dt/1000;
-      p.y += (p.vy||0) * dt/1000;
-      p.a = clamp(p.life*3, 0, 1);
+    const s=dt/1000;
+    for(let i=ZG.ent.particles.length-1;i>=0;i--){
+      const p=ZG.ent.particles[i];
+      p.life -= s; if(p.life<=0){ ZG.ent.particles.splice(i,1); continue; }
+      p.x += (p.vx||0)*s; p.y += (p.vy||0)*s;
+      p.a = ZG.clamp(p.life*3,0,1);
+    }
+    for(let i=ZG.ent.floaters.length-1;i>=0;i--){
+      const f=ZG.ent.floaters[i];
+      f.life -= s; if(f.life<=0){ ZG.ent.floaters.splice(i,1); continue; }
+      f.y += f.vy*s; f.a = ZG.clamp(f.life*1.6,0,1);
     }
   }
 
-  function floatersUpdate(dt){
-    for (let i=floaters.length-1;i>=0;i--){
-      const f=floaters[i];
-      f.life -= dt/1000;
-      if (f.life<=0){ floaters.splice(i,1); continue; }
-      f.y += f.vy * dt/1000;
-      f.a = clamp(f.life*1.6, 0, 1);
+  function shieldRegen(dt){
+    const s=dt/1000;
+    if(ZG.now() - ZG.player.shHitAt > ZG.player.shDelay){
+      ZG.player.sh = ZG.clamp(ZG.player.sh + ZG.player.shRegen*s, 0, ZG.player.shMax);
     }
   }
 
-  function sceneUpdate(dt){
-    // fog drift
-    for (const f of fog){
-      f.x += f.vx * dt/1000;
-      f.y += f.vy * dt/1000;
-      if (f.x < -200) f.x = world.w+200;
-      if (f.x > world.w+200) f.x = -200;
-      if (f.y < -200) f.y = world.h+200;
-      if (f.y > world.h+200) f.y = -200;
-    }
-    // dust
-    for (const d of dust){
-      d.x += d.vx * dt/1000;
-      d.y += d.vy * dt/1000;
-      if (d.x < 0) d.x = world.w;
-      if (d.x > world.w) d.x = 0;
-      if (d.y < 0) d.y = world.h;
-      if (d.y > world.h) d.y = 0;
+  // skill: EMP storm
+  function doSkill(){
+    if(ZG.build.skillT>0) return;
+    ZG.build.skillT = ZG.build.skillCd;
+    const R=320;
+    ZG.ent.traps.push({ type:"storm", x:ZG.player.x, y:ZG.player.y, r:R, t:0, life:0.85 });
+    ZG.shake=Math.max(ZG.shake,18);
+    for(const e of ZG.ent.enemies){
+      if(Math.hypot(e.x-ZG.player.x, e.y-ZG.player.y) < R){
+        e.frozen = Math.max(e.frozen, 1.1);
+        hurtEnemy(e, 34 + combat.wave*1.7, "skill");
+      }
     }
   }
 
-  // ===== Player =====
-  function playerUpdate(dt){
-    // movement
-    let mx=0,my=0;
-    if (keys.has('w')||keys.has('arrowup')) my -= 1;
-    if (keys.has('s')||keys.has('arrowdown')) my += 1;
-    if (keys.has('a')||keys.has('arrowleft')) mx -= 1;
-    if (keys.has('d')||keys.has('arrowright')) mx += 1;
-    if (isTouch){ mx += joy.move.vx; my += joy.move.vy; }
-
-    if (mx||my){
-      const [nx,ny]=norm(mx,my);
-      player.x = clamp(player.x + nx*player.speed*meta.speedMul*dt/1000, 0, world.w);
-      player.y = clamp(player.y + ny*player.speed*meta.speedMul*dt/1000, 0, world.h);
-      player.animT += dt/1000;
-    } else {
-      player.animT += dt/1000 * 0.6;
-    }
-
-    // shield regen
-    if (now() - player.shieldHitAt > player.shieldDelay){
-      player.shield = clamp(player.shield + player.shieldRegen*dt/1000, 0, player.shieldMax);
-    }
-
-    if (player.skillCd > 0) player.skillCd = Math.max(0, player.skillCd - dt);
-
-    // cam
-    cam.x = clamp(player.x - innerWidth/2, 0, world.w - innerWidth);
-    cam.y = clamp(player.y - innerHeight/2, 0, world.h - innerHeight);
+  // wave spawner
+  function spawnUpdate(dt){
+    if(combat.state!=="fight") return;
+    combat.spawnT -= dt;
+    if(combat.spawnT>0) return;
+    if(combat.left<=0) return;
+    combat.spawnT = combat.spawnRate*1000;
+    const n=combat.wave;
+    if(combat.bossPending && combat.left===1){ spawnEnemy("boss"); combat.left--; return; }
+    const r=Math.random();
+    let kind="walk";
+    if(r<Math.min(0.12,0.05+n*0.006)) kind="tank";
+    else if(r<Math.min(0.58,0.22+n*0.012)) kind="fast";
+    spawnEnemy(kind);
+    combat.left--;
   }
 
-  // ===== Wave End =====
   function checkWaveEnd(){
-    if (waveState!=='fight') return;
-    if (waveLeft<=0 && enemies.length===0){
-      waveState='between';
-      openUpgradeChoices();
+    if(combat.state!=="fight") return;
+    if(combat.left<=0 && ZG.ent.enemies.length===0){
+      combat.state="between";
+      openUpgrades();
     }
   }
 
-  // ===== Overlay (Upgrades + Shop) =====
-  let paused=false;
-  let shopOpen=false;
-
-  function togglePause(){
-    paused=!paused;
-    btnPause.textContent = paused ? '暂停：开（P）' : '暂停：关（P）';
-  }
-
-  function toggleShop(){
-    if (waveState==='between') return;
-    shopOpen = !shopOpen;
-    if (shopOpen) openShop();
-    else closeOverlay();
-  }
-
-  btnSkill.onclick = trySkill;
-  btnPause.onclick = togglePause;
-  btnShop.onclick = toggleShop;
-  modalClose.onclick = () => { if (shopOpen){ shopOpen=false; closeOverlay(); } };
-
-  const upgradePool = [
-    { t:'🔥 射速 +20%', d:'清怪效率大幅提升（爽感核心）', apply:()=> meta.fireMul *= 1.2 },
-    { t:'💥 伤害 +25%', d:'Boss更好打，后期收益高', apply:()=> meta.dmgMul *= 1.25 },
-    { t:'🗡️ 穿透 +1', d:'直线割草，怪越密越爽', apply:()=> meta.pierceAdd += 1 },
-    { t:'💣 溅射 +45', d:'命中范围伤害（群怪神技）', apply:()=> meta.splash += 45 },
-    { t:'⚡ 连锁闪电 +1', d:'命中跳电清场（成品味很强）', apply:()=> meta.chain += 1 },
-    { t:'❄️ 冰冻几率 +12%', d:'控场更稳（容错更高）', apply:()=> meta.freeze = clamp(meta.freeze + 0.12, 0, 0.60) },
-    { t:'🔥 灼烧几率 +12%', d:'持续掉血（坦克怪更好磨）', apply:()=> meta.burn = clamp(meta.burn + 0.12, 0, 0.60) },
-    { t:'🧲 拾取范围 +70', d:'金币/药球更丝滑（体验明显提升）', apply:()=> player.magnet += 70 },
-    { t:'🩸 最大生命 +40', d:'更耐打，同时回复满血', apply:()=> { player.hpMax += 40; player.hp = player.hpMax; } },
-    { t:'🛡️ 护盾上限 +35', d:'护盾更厚（新手友好）', apply:()=> { player.shieldMax += 35; player.shield += 25; } },
-    { t:'💨 移速 +15%', d:'走位更舒服，后期更安全', apply:()=> meta.speedMul *= 1.15 },
-    { t:'🎯 暴击 +6%', d:'爆发更强，数字更爽', apply:()=> player.crit = clamp(player.crit + 0.06, 0, 0.70) },
-    { t:'🩸 吸血 +1.5%', d:'打怪回血（成品常见机制）', apply:()=> player.lifesteal = clamp(player.lifesteal + 0.015, 0, 0.14) },
-    { t:'💰 金币收益 +20%', d:'商店更快成型（局外感更像成品）', apply:()=> meta.coinsMul *= 1.2 },
+  // upgrades (3-choice)
+  const upgrades = [
+    {t:"🔥 射速 +20%", d:"更爽更快清怪", on:()=>ZG.build.fireMul*=1.2},
+    {t:"💥 伤害 +25%", d:"Boss更好打", on:()=>ZG.build.dmgMul*=1.25},
+    {t:"🗡️ 穿透 +1", d:"直线割草", on:()=>ZG.build.pierceAdd+=1},
+    {t:"💣 溅射 +45", d:"群怪爆炸感", on:()=>ZG.build.splash+=45},
+    {t:"⚡ 连锁闪电 +1", d:"成品味很强", on:()=>ZG.build.chain+=1},
+    {t:"🎯 暴击 +6%", d:"爆发更爽", on:()=>ZG.build.crit=ZG.clamp(ZG.build.crit+0.06,0,0.70)},
+    {t:"❄️ 冰冻 +12%", d:"控场更稳", on:()=>ZG.build.freeze=ZG.clamp(ZG.build.freeze+0.12,0,0.60)},
+    {t:"🔥 灼烧 +12%", d:"坦克怪更好磨", on:()=>ZG.build.burn=ZG.clamp(ZG.build.burn+0.12,0,0.60)},
+    {t:"🧲 拾取范围 +70", d:"金币/补给更丝滑", on:()=>ZG.build.magnet+=70},
+    {t:"🩸 最大生命 +40", d:"容错更高", on:()=>{ZG.player.hpMax+=40; ZG.player.hp=ZG.player.hpMax;}},
+    {t:"🛡️ 护盾上限 +35", d:"更耐打", on:()=>{ZG.player.shMax+=35; ZG.player.sh+=25;}},
   ];
 
-  const shopItems = [
-    { t:'切换：霰弹枪', d:'近距离爆发，散射7发', cost: 90, apply:()=> player.weapon='SG' },
-    { t:'切换：激光枪', d:'穿透+更高弹速', cost: 110, apply:()=> player.weapon='LASER' },
-    { t:'切换：步枪', d:'均衡稳定，适合新手', cost: 60, apply:()=> player.weapon='AR' },
-    { t:'急救包 +50HP', d:'立刻回复生命', cost: 58, apply:()=> player.hp = clamp(player.hp+50, 0, player.hpMax) },
-    { t:'护盾充能 +45', d:'立刻回复护盾', cost: 58, apply:()=> player.shield = clamp(player.shield+45, 0, player.shieldMax) },
-    { t:'技能冷却 -10%', d:'更频繁放大招', cost: 120, apply:()=> player.skillCdMax = Math.max(4200, player.skillCdMax*0.90) },
-  ];
-
-  function openUpgradeChoices(){
-    paused = true;
-    overlay.classList.add('show');
-    modalTitle.textContent = `第 ${wave} 波结束：选择 1 个强化`;
-    modalNote.textContent = '成品建议：射速/穿透/溅射/连锁闪电 → 爽感最强；冰冻/护盾 → 容错最高。';
-    cardsEl.innerHTML='';
-    const pool=[...upgradePool];
+  function openUpgrades(){
+    const pool=[...upgrades];
     const picks=[];
-    while (picks.length<3 && pool.length){
+    while(picks.length<3 && pool.length){
       picks.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
     }
-    for (const u of picks){
-      const div=document.createElement('div');
-      div.className='card';
-      div.innerHTML = `<div class="t">${u.t}</div><div class="d">${u.d}</div>`;
-      div.onclick = ()=>{
-        u.apply();
-        closeOverlay();
-        paused = false;
-        startWave(wave+1);
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent = `第 ${combat.wave} 波结束：选择 1 个强化`;
+    ZG.ui.modalNote.textContent = "这就是成品肉鸽升级节奏（割草线）。下一段会加入“塔防线”。";
+    ZG.ui.cards.innerHTML="";
+    picks.forEach(u=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML=`<div class="t">${u.t}</div><div class="d">${u.d}</div>`;
+      div.onclick=()=>{
+        u.on();
+        ZG.ui.overlay.classList.remove("show");
+        startWave(combat.wave+1);
+        combat.state="fight";
       };
-      cardsEl.appendChild(div);
-    }
-    modalClose.textContent = '关闭';
+      ZG.ui.cards.appendChild(div);
+    });
   }
 
-  function openShop(){
-    paused = true;
-    overlay.classList.add('show');
-    modalTitle.textContent = '商店：用金币购买（E关闭）';
-    modalNote.textContent = '成品味：中期用商店转枪/补给，后期靠升级堆流派。';
-    cardsEl.innerHTML='';
-    for (const it of shopItems){
-      const div=document.createElement('div');
-      div.className='card';
-      div.innerHTML = `<div class="t">${it.t}（${it.cost}💰）</div><div class="d">${it.d}</div>`;
-      div.onclick = ()=>{
-        if (player.gold < it.cost) { flash(`金币不足：需要 ${it.cost}`); return; }
-        player.gold -= it.cost;
-        it.apply();
-        flash('购买成功');
-      };
-      cardsEl.appendChild(div);
-    }
-    modalClose.textContent = '关闭';
-  }
-
-  function closeOverlay(){
-    overlay.classList.remove('show');
-    cardsEl.innerHTML='';
-    paused = false;
-  }
-
-  // ===== Game Over =====
-  let over=false;
   function gameOver(){
-    if (over) return;
-    over = true;
-    paused = true;
-    overlay.classList.add('show');
-    modalTitle.textContent = '你被尸潮淹没了（Game Over）';
-    modalNote.textContent = `击杀：${player.kills}　到达波次：${wave}　金币：${player.gold}`;
-    cardsEl.innerHTML='';
-    const div=document.createElement('div');
-    div.className='card';
-    div.innerHTML = `<div class="t">重新开始</div><div class="d">立刻再来一局（熟练后更像成品爽感）</div>`;
-    div.onclick = ()=> location.reload();
-    cardsEl.appendChild(div);
-    modalClose.textContent = '关闭';
+    ZG.paused=true;
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent="Game Over";
+    ZG.ui.modalNote.textContent=`击杀 ${ZG.player.kills}｜到达波次 ${combat.wave}｜金币 ${ZG.player.gold}`;
+    ZG.ui.cards.innerHTML="";
+    const div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=`<div class="t">重新开始</div><div class="d">刷新页面再来（Part5会加入局外养成保存）</div>`;
+    div.onclick=()=>location.reload();
+    ZG.ui.cards.appendChild(div);
   }
 
-  // ===== HUD =====
-  function hud(){
-    hpEl.textContent = Math.ceil(player.hp);
-    hpMaxEl.textContent = Math.ceil(player.hpMax);
-    shEl.textContent = Math.ceil(player.shield);
-    wpEl.textContent = weapons[player.weapon].name;
-    dpsEl.textContent = calcDps();
-    critEl.textContent = Math.floor(player.crit*100) + '%';
-    leftEl.textContent = waveLeft;
-    killsEl.textContent = player.kills;
-    goldEl.textContent = player.gold;
-    btnSkill.textContent = player.skillCd>0 ? `技能（${Math.ceil(player.skillCd/1000)}s）` : '技能（空格）';
+  // shop hook (simple)
+  function openShop(){
+    const items=[
+      {t:"切换：霰弹枪", d:"近距爆发（7发）", cost:90, on:()=>ZG.build.wpn="SG"},
+      {t:"切换：激光枪", d:"穿透更强", cost:110, on:()=>ZG.build.wpn="LAS"},
+      {t:"切换：步枪", d:"均衡稳定", cost:60, on:()=>ZG.build.wpn="AR"},
+      {t:"急救包 +50HP", d:"立刻回复生命", cost:58, on:()=>ZG.player.hp=ZG.clamp(ZG.player.hp+50,0,ZG.player.hpMax)},
+      {t:"护盾充能 +45", d:"立刻回复护盾", cost:58, on:()=>ZG.player.sh=ZG.clamp(ZG.player.sh+45,0,ZG.player.shMax)},
+      {t:"技能冷却 -10%", d:"更频繁放大招", cost:120, on:()=>ZG.build.skillCd=Math.max(4200, ZG.build.skillCd*0.9)},
+    ];
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent="商店（战斗中也可开）";
+    ZG.ui.modalNote.textContent="这是割草线商店；Part4会加入塔防建造/升级。";
+    ZG.ui.cards.innerHTML="";
+    items.forEach(it=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML=`<div class="t">${it.t}（${it.cost}💰）</div><div class="d">${it.d}</div>`;
+      div.onclick=()=>{
+        if(ZG.player.gold<it.cost) return;
+        ZG.player.gold-=it.cost;
+        it.on();
+      };
+      ZG.ui.cards.appendChild(div);
+    });
   }
 
-  // ===== Flash =====
-  let flashMsg='', flashUntil=0;
-  function flash(msg){ flashMsg=msg; flashUntil=now()+900; }
+  // hook ui events
+  ZG.hook.ui.push((evt)=>{
+    if(evt==="skill") doSkill();
+    if(evt==="shop") openShop();
+  });
+  ZG.ui.btnSkill.onclick = doSkill;
+  ZG.ui.btnShop.onclick = openShop;
 
-  // ===== Draw: background + parallax fog + light =====
-  function draw(){
-    const w = innerWidth, h = innerHeight;
+  // combat update module
+  ZG.modules.push((dt)=>{
+    if(ZG.paused) return;
 
-    // shake
-    const sx = (shake>0) ? rand(-shake,shake) : 0;
-    const sy = (shake>0) ? rand(-shake,shake) : 0;
-    shake = Math.max(0, shake - 0.9);
+    // skill cd
+    if(ZG.build.skillT>0) ZG.build.skillT = Math.max(0, ZG.build.skillT-dt);
 
-    ctx.clearRect(0,0,w,h);
+    // regen
+    shieldRegen(dt);
 
-    const toX = (x)=> x - cam.x + sx;
-    const toY = (y)=> y - cam.y + sy;
+    // spawn & fight
+    spawnUpdate(dt);
+    fire(dt);
+    bulletsUpdate(dt);
+    trapsUpdate(dt);
+    enemyUpdate(dt);
+    pickupsUpdate(dt);
+    particlesUpdate(dt);
+    checkWaveEnd();
 
-    // animated ground (grid + moving noise lines)
-    ctx.globalAlpha=0.16;
-    ctx.lineWidth=1;
-    ctx.strokeStyle='rgba(255,255,255,.18)';
-    const grid=84;
-    const ox = -((cam.x+sx) % grid);
-    const oy = -((cam.y+sy) % grid);
-    for (let x=ox; x<w; x+=grid){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-    for (let y=oy; y<h; y+=grid){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    ZG.ui.dps.textContent = String(dps());
+  });
 
-    // moving scanlines
-    const t = now()/1000;
-    ctx.globalAlpha=0.06;
-    ctx.fillStyle='rgba(255,255,255,.8)';
-    for (let k=0;k<5;k++){
-      const yy = ((t*44 + k*220) % (h+240)) - 120;
-      ctx.fillRect(0, yy, w, 2);
-    }
-    ctx.globalAlpha=1;
+  // draw bullets/pickups/particles/floaters on top (keeps Part2 sprites)
+  ZG.hook.draw.push(() => {
+    const ctx=ZG.ctx;
+    const toX=(x)=>x-ZG.cam.x, toY=(y)=>y-ZG.cam.y;
 
-    // fog (parallax)
-    for (const f of fog){
-      const px = (f.x - cam.x*0.92) + sx;
-      const py = (f.y - cam.y*0.92) + sy;
-      if (px < -600 || py < -600 || px > w+600 || py > h+600) continue;
-      ctx.globalAlpha = f.a;
-      ctx.beginPath();
-      ctx.arc(px, py, f.r, 0, Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.85)';
-      ctx.fill();
-    }
-    ctx.globalAlpha=1;
-
-    // dust particles
-    ctx.globalAlpha=0.55;
-    ctx.fillStyle='rgba(255,255,255,.55)';
-    for (const d of dust){
-      const x=toX(d.x), y=toY(d.y);
-      if (x<0||y<0||x>w||y>h) continue;
-      ctx.globalAlpha=d.a;
-      ctx.beginPath(); ctx.arc(x,y,d.r,0,Math.PI*2); ctx.fill();
-    }
-    ctx.globalAlpha=1;
-
-    // hazards
-    for (const hz of hazards){
-      const x=toX(hz.x), y=toY(hz.y);
-      if (hz.type==='storm'){
-        ctx.globalAlpha=0.20;
-        ctx.beginPath(); ctx.arc(x,y,hz.r,0,Math.PI*2);
-        ctx.strokeStyle='rgba(255,255,255,.95)';
-        ctx.lineWidth=3;
-        ctx.stroke();
-        ctx.globalAlpha=1;
+    // traps visuals
+    for(const t of ZG.ent.traps){
+      const x=toX(t.x), y=toY(t.y);
+      if(t.type==="storm"){
+        ctx.globalAlpha=0.18;
+        ctx.beginPath(); ctx.arc(x,y,t.r,0,Math.PI*2);
+        ctx.strokeStyle="rgba(255,255,255,.95)"; ctx.lineWidth=3; ctx.stroke(); ctx.globalAlpha=1;
       }
-      if (hz.type==='slam'){
-        const p=clamp((hz.t||0)/0.66,0,1);
+      if(t.type==="slam"){
+        const p=ZG.clamp((t.t||0)/0.66,0,1);
         ctx.globalAlpha=0.28;
-        ctx.beginPath(); ctx.arc(x,y,hz.r*p,0,Math.PI*2);
-        ctx.strokeStyle='rgba(255,255,255,.9)';
-        ctx.lineWidth=3;
-        ctx.stroke();
-        ctx.globalAlpha=1;
+        ctx.beginPath(); ctx.arc(x,y,t.r*p,0,Math.PI*2);
+        ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.lineWidth=3; ctx.stroke(); ctx.globalAlpha=1;
       }
-      if (hz.type==='ring'){
-        const tt=(hz.t||0);
-        ctx.globalAlpha=clamp(1-tt*5,0,1)*0.55;
-        ctx.beginPath(); ctx.arc(x,y,hz.r*(1+ tt*0.35),0,Math.PI*2);
-        ctx.strokeStyle='rgba(255,255,255,.85)';
-        ctx.lineWidth=2;
-        ctx.stroke();
-        ctx.globalAlpha=1;
-      }
-      if (hz.type==='spit'){
-        ctx.globalAlpha=0.9;
-        ctx.beginPath(); ctx.arc(x,y,hz.r,0,Math.PI*2);
-        ctx.fillStyle='rgba(255,255,255,.92)';
-        ctx.fill();
-        ctx.globalAlpha=1;
-      }
+    }
+
+    // bullets
+    for(const b of ZG.ent.bullets){
+      const x=toX(b.x), y=toY(b.y);
+      ctx.globalAlpha=0.25; ctx.beginPath(); ctx.arc(x,y,b.r*3.0,0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,.85)"; ctx.fill();
+      ctx.globalAlpha=0.92; ctx.beginPath(); ctx.arc(x,y,b.r,0,Math.PI*2); ctx.fillStyle="rgba(255,255,255,.95)"; ctx.fill();
+      ctx.globalAlpha=1;
     }
 
     // pickups
-    for (const p of pickups){
+    for(const p of ZG.ent.pickups){
       const x=toX(p.x), y=toY(p.y);
-      ctx.globalAlpha=0.9;
-      ctx.beginPath(); ctx.arc(x,y,p.r,0,Math.PI*2);
-      ctx.fillStyle = p.type==='gold' ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.75)';
-      ctx.fill();
-      ctx.globalAlpha=1;
-    }
-
-    // bullets (glow trail)
-    for (const b of bullets){
-      const x=toX(b.x), y=toY(b.y);
-      ctx.globalAlpha=0.25;
-      ctx.beginPath(); ctx.arc(x,y,b.r*3.2,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.85)';
-      ctx.fill();
-      ctx.globalAlpha=0.92;
-      ctx.beginPath(); ctx.arc(x,y,b.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.95)';
-      ctx.fill();
-      ctx.globalAlpha=1;
-    }
-
-    // enemies as sprites
-    for (const e of enemies){
-      const x=toX(e.x), y=toY(e.y);
-      const hpP = clamp(e.hp/e.hpMax, 0, 1);
-
-      // choose sprite frame
-      const frame = Math.floor((e.animT*10) % 4);
-      const img = e.boss ? SPR.boss[Math.floor((e.animT*3)%2)] : SPR.zombie[frame];
-      const size = e.r*2.4;
-      const rot = e.faceA;
-
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate(rot);
-      // subtle squash for frozen
-      const s = (e.frozen>0) ? 0.96 : 1;
-      ctx.scale(s,1);
-      ctx.globalAlpha = e.hit>0 ? 1 : 0.90;
-      ctx.drawImage(img, -size/2, -size/2, size, size);
-      ctx.restore();
-      ctx.globalAlpha=1;
-
-      // HP bar
-      const bw = e.r*2.2, bh = 7;
-      ctx.globalAlpha=0.75;
-      ctx.fillStyle='rgba(0,0,0,.45)';
-      ctx.fillRect(x-bw/2, y-e.r-20, bw, bh);
-      ctx.fillStyle='rgba(255,255,255,.72)';
-      ctx.fillRect(x-bw/2, y-e.r-20, bw*hpP, bh);
-      ctx.globalAlpha=1;
-
-      // freeze ring
-      if (e.frozen>0){
-        ctx.globalAlpha=0.22;
-        ctx.beginPath(); ctx.arc(x,y,e.r+10,0,Math.PI*2);
-        ctx.strokeStyle='rgba(255,255,255,.92)';
-        ctx.lineWidth=2;
-        ctx.stroke();
-        ctx.globalAlpha=1;
-      }
-    }
-
-    // player sprite
-    {
-      const x=toX(player.x), y=toY(player.y);
-      const frame = Math.floor((player.animT*10) % 4);
-      const img = SPR.player[frame];
-      const size = player.r*2.5;
-
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate(player.faceA);
-      ctx.drawImage(img, -size/2, -size/2, size, size);
-      ctx.restore();
-
-      // light halo (like flashlight)
-      ctx.globalAlpha=0.18;
-      ctx.beginPath();
-      ctx.arc(x,y,220,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.75)';
-      ctx.fill();
-      ctx.globalAlpha=1;
-
-      // facing line (aim)
-      const aim=getAimWorld();
-      const [nx,ny]=norm(aim.x-player.x, aim.y-player.y);
-      ctx.globalAlpha=0.28;
-      ctx.beginPath();
-      ctx.moveTo(x,y);
-      ctx.lineTo(x+nx*260, y+ny*260);
-      ctx.strokeStyle='rgba(255,255,255,.8)';
-      ctx.lineWidth=2;
-      ctx.stroke();
-      ctx.globalAlpha=1;
+      ctx.globalAlpha=0.9; ctx.beginPath(); ctx.arc(x,y,p.r,0,Math.PI*2);
+      ctx.fillStyle = (p.type==="gold") ? "rgba(255,215,130,.95)" : "rgba(180,255,220,.85)";
+      ctx.fill(); ctx.globalAlpha=1;
     }
 
     // particles
-    for (const p of particles){
+    for(const p of ZG.ent.particles){
       const x=toX(p.x), y=toY(p.y);
       ctx.globalAlpha=p.a;
       ctx.beginPath(); ctx.arc(x,y,p.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.88)';
-      ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.88)"; ctx.fill();
     }
     ctx.globalAlpha=1;
 
-    // floaters (damage numbers)
-    ctx.font='900 14px system-ui';
-    for (const f of floaters){
+    // floaters
+    ctx.font="900 14px system-ui";
+    for(const f of ZG.ent.floaters){
       const x=toX(f.x), y=toY(f.y);
       ctx.globalAlpha=f.a;
-      ctx.fillStyle='rgba(255,255,255,.95)';
+      ctx.fillStyle="rgba(255,255,255,.95)";
       ctx.fillText(f.text, x-10, y);
     }
     ctx.globalAlpha=1;
+  });
+})();
+</script>
+<script>
+(() => {
+  const ZG = window.ZG; if(!ZG) return;
 
-    // flash
-    if (flashUntil>now()){
-      const tt = (flashUntil-now())/900;
-      ctx.globalAlpha = clamp(tt*1.2, 0, 1);
-      ctx.font='1000 22px system-ui';
-      ctx.fillStyle='rgba(255,255,255,.95)';
-      ctx.fillText(flashMsg, 18, h-180);
+  // ===== Part4: Tower Defense Layer =====
+  // 固定“守点路线”+ 可升级炮塔（成品常见）
+  const TD = ZG.td = {
+    base:{ x: ZG.world.w*0.5, y: ZG.world.h*0.5, r: 80, hp: 400, hpMax: 400 },
+    towers: ZG.ent.towers,
+    traps:  ZG.ent.traps,
+  };
+
+  // place some tower slots around base
+  function initTowers(){
+    TD.towers.length=0;
+    const b=TD.base;
+    const slots = [
+      {x:b.x-220,y:b.y-120},{x:b.x+220,y:b.y-120},
+      {x:b.x-240,y:b.y+140},{x:b.x+240,y:b.y+140},
+      {x:b.x,y:b.y-260},{x:b.x,y:b.y+260},
+    ];
+    slots.forEach((s,i)=>TD.towers.push({ id:i, x:s.x, y:s.y, r:22, lv:0, fireT:0, type:"gun" }));
+  }
+  initTowers();
+
+  function towerDps(lv){ return 10 + lv*8; }
+  function towerRate(lv){ return Math.max(0.18, 0.52 - lv*0.06); } // seconds
+  function towerRange(lv){ return 320 + lv*28; }
+
+  function towerUpdate(dt){
+    const s=dt/1000;
+    for(const t of TD.towers){
+      if(t.lv<=0) continue;
+      t.fireT -= s;
+      if(t.fireT>0) continue;
+      // pick nearest enemy in range
+      let best=null, bd=1e18;
+      const R=towerRange(t.lv);
+      for(const e of ZG.ent.enemies){
+        const d=(e.x-t.x)**2+(e.y-t.y)**2;
+        if(d<bd && d<R*R){ bd=d; best=e; }
+      }
+      if(!best) continue;
+      t.fireT = towerRate(t.lv);
+
+      // fire a bullet towards enemy (uses same bullet system)
+      const [nx,ny]=ZG.norm(best.x-t.x, best.y-t.y);
+      ZG.ent.bullets.push({
+        x:t.x+nx*(t.r+6), y:t.y+ny*(t.r+6),
+        vx:nx*1050, vy:ny*1050,
+        r:4.0, life:0.9,
+        dmg: towerDps(t.lv) * (1+ZG.meta.perm.atk*0.06),
+        pierce:0
+      });
+      // small muzzle particles
+      for(let k=0;k<2;k++) ZG.ent.particles.push({ x:t.x+nx*(t.r+8)+ZG.rand(-3,3), y:t.y+ny*(t.r+8)+ZG.rand(-3,3), vx:nx*ZG.rand(80,140), vy:ny*ZG.rand(80,140), r:ZG.rand(1.4,2.8), a:1, life:ZG.rand(0.10,0.18) });
+    }
+  }
+
+  // base damage when enemies reach core
+  function baseCheck(){
+    const b=TD.base;
+    for(let i=ZG.ent.enemies.length-1;i>=0;i--){
+      const e=ZG.ent.enemies[i];
+      const d=Math.hypot(e.x-b.x, e.y-b.y);
+      if(d < b.r + e.r){
+        b.hp -= (e.dmg*0.8);
+        ZG.shake=Math.max(ZG.shake,12);
+        ZG.ent.floaters.push({ x:b.x, y:b.y-b.r-10, vy:-40, life:0.85, a:1, text:"核心-"+Math.floor(e.dmg*0.8) });
+        // remove enemy on impact
+        ZG.ent.enemies.splice(i,1);
+      }
+    }
+    if(b.hp<=0){
+      // force game over
+      ZG.player.hp = 0;
+    }
+  }
+
+  // slow trap: ice field around base (buy/upgrade)
+  if(!ZG.td.ice){ ZG.td.ice = { lv:0 }; }
+  function applySlowField(dt){
+    const lv = ZG.td.ice.lv;
+    if(lv<=0) return;
+    const b=TD.base;
+    const R = 260 + lv*50;
+    // visual ring
+    ZG.ent.traps.push({ type:"iceRing", x:b.x, y:b.y, r:R, t:0, life:0.06 });
+    for(const e of ZG.ent.enemies){
+      if(Math.hypot(e.x-b.x, e.y-b.y) < R){
+        e.frozen = Math.max(e.frozen, 0.25 + lv*0.12);
+      }
+    }
+  }
+
+  // UI: open tower build menu via Shop
+  function openBuildMenu(){
+    const cards=[];
+    // towers
+    for(const t of TD.towers){
+      const cost = (t.lv+1)*80;
+      cards.push({
+        t:`炮塔槽 #${t.id}：升级到 Lv.${t.lv+1}（${cost}💰）`,
+        d:`DPS≈${towerDps(t.lv+1)}｜射速≈${towerRate(t.lv+1)}s｜范围≈${towerRange(t.lv+1)}`,
+        on:()=>{
+          if(ZG.player.gold<cost) return;
+          ZG.player.gold-=cost;
+          t.lv++;
+        }
+      });
+    }
+    const iceCost = (ZG.td.ice.lv+1)*120;
+    cards.push({
+      t:`冰霜减速场：升级到 Lv.${ZG.td.ice.lv+1}（${iceCost}💰）`,
+      d:`减速范围扩大，守点更稳（塔防线核心）`,
+      on:()=>{
+        if(ZG.player.gold<iceCost) return;
+        ZG.player.gold-=iceCost;
+        ZG.td.ice.lv++;
+      }
+    });
+
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent="塔防建造/升级（守点线）";
+    ZG.ui.modalNote.textContent="你现在同时拥有：割草射击 + 守点炮塔。下一段加入“局外养成（抽卡/强化/存档）”。";
+    ZG.ui.cards.innerHTML="";
+    cards.forEach(c=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML=`<div class="t">${c.t}</div><div class="d">${c.d||""}</div>`;
+      div.onclick=c.on;
+      ZG.ui.cards.appendChild(div);
+    });
+  }
+
+  // Hook shop button: add a second page (build)
+  const oldShop = ZG.ui.btnShop.onclick;
+  ZG.ui.btnShop.onclick = () => {
+    // 简单：按住 Shift 打开塔防菜单（PC），手机就直接弹双卡
+    if(ZG.keys.has("shift")){
+      openBuildMenu();
+    } else {
+      oldShop && oldShop();
+    }
+  };
+
+  // Update module
+  ZG.modules.push((dt)=>{
+    if(ZG.paused) return;
+    towerUpdate(dt);
+    applySlowField(dt);
+    baseCheck();
+  });
+
+  // Draw base + towers + ice ring
+  ZG.hook.draw.push(()=>{
+    const ctx=ZG.ctx;
+    const toX=(x)=>x-ZG.cam.x, toY=(y)=>y-ZG.cam.y;
+
+    const b=TD.base;
+    const bx=toX(b.x), by=toY(b.y);
+
+    // base glow
+    ctx.globalAlpha=0.16;
+    ctx.beginPath(); ctx.arc(bx,by,b.r*2.1,0,Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,.75)"; ctx.fill();
+    ctx.globalAlpha=0.85;
+    ctx.beginPath(); ctx.arc(bx,by,b.r,0,Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,.88)"; ctx.fill();
+    ctx.globalAlpha=1;
+
+    // base hp bar
+    const hpP = ZG.clamp(b.hp/b.hpMax,0,1);
+    ctx.globalAlpha=0.75;
+    ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(bx-70, by-b.r-34, 140, 8);
+    ctx.fillStyle="rgba(255,255,255,.72)"; ctx.fillRect(bx-70, by-b.r-34, 140*hpP, 8);
+    ctx.globalAlpha=1;
+
+    // towers
+    for(const t of TD.towers){
+      const x=toX(t.x), y=toY(t.y);
+      ctx.globalAlpha=0.9;
+      ctx.beginPath(); ctx.arc(x,y,t.r,0,Math.PI*2);
+      ctx.fillStyle = t.lv>0 ? "rgba(180,255,220,.90)" : "rgba(255,255,255,.22)";
+      ctx.fill();
+      ctx.globalAlpha=0.8;
+      ctx.font="900 12px system-ui";
+      ctx.fillStyle="rgba(0,0,0,.55)";
+      ctx.fillText(`Lv${t.lv}`, x-12, y+4);
       ctx.globalAlpha=1;
     }
 
-    // minimap
-    const mw=176, mh=118;
-    const mx=18, my=h-(mh+18);
-    ctx.globalAlpha=0.35;
-    ctx.fillStyle='rgba(0,0,0,.55)';
-    ctx.fillRect(mx,my,mw,mh);
-    ctx.strokeStyle='rgba(255,255,255,.25)';
-    ctx.strokeRect(mx,my,mw,mh);
-    ctx.globalAlpha=1;
-
-    const px = mx + (player.x/world.w)*mw;
-    const py = my + (player.y/world.h)*mh;
-    ctx.globalAlpha=0.9;
-    ctx.beginPath(); ctx.arc(px,py,3.2,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fill();
-
-    ctx.globalAlpha=0.7;
-    for (let i=0;i<Math.min(70,enemies.length);i++){
-      const e=enemies[i];
-      const ex = mx + (e.x/world.w)*mw;
-      const ey = my + (e.y/world.h)*mh;
-      ctx.beginPath(); ctx.arc(ex,ey,e.boss?3.2:2.0,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.75)';
-      ctx.fill();
+    // ice ring visual (persistent)
+    if(ZG.td.ice.lv>0){
+      const R=260+ZG.td.ice.lv*50;
+      ctx.globalAlpha=0.18;
+      ctx.beginPath(); ctx.arc(bx,by,R,0,Math.PI*2);
+      ctx.strokeStyle="rgba(180,220,255,.95)"; ctx.lineWidth=3; ctx.stroke();
+      ctx.globalAlpha=1;
     }
-    ctx.globalAlpha=1;
-  }
-
-  // ===== Hazards Update =====
-  function hazardsUpdate(dt){
-    for (let i=hazards.length-1;i>=0;i--){
-      const h=hazards[i];
-      h.life -= dt/1000;
-      if (h.life<=0){ hazards.splice(i,1); continue; }
-      if (h.type==='spit'){
-        h.x += h.vx * dt/1000;
-        h.y += h.vy * dt/1000;
-        const d = Math.hypot(player.x-h.x, player.y-h.y);
-        if (d < player.r + h.r){
-          hitPlayer(h.dmg);
-          hazards.splice(i,1);
-        }
-      }
-      if (h.type==='slam'){
-        h.t = (h.t||0) + dt/1000;
-        if (!h.did && h.t > 0.66){
-          h.did = true;
-          const d = Math.hypot(player.x-h.x, player.y-h.y);
-          if (d < h.r) hitPlayer(h.dmg);
-          shake = Math.max(shake, 18);
-          for (let k=0;k<36;k++){
-            particles.push({ x:h.x, y:h.y, vx:rand(-340,340), vy:rand(-340,340), r:rand(1.8,4.4), a:1, life:rand(0.22,0.62) });
-          }
-        }
-      }
-      if (h.type==='storm'){
-        h.t = (h.t||0) + dt/1000;
-        if (Math.random()<0.42){
-          particles.push({ x: h.x+rand(-h.r,h.r), y:h.y+rand(-h.r,h.r), vx:rand(-90,90), vy:rand(-90,90), r:rand(1.1,2.8), a:1, life:rand(0.06,0.16) });
-        }
-      }
-      if (h.type==='ring'){
-        h.t = (h.t||0) + dt/1000;
-      }
-    }
-  }
-
-  // ===== Enemies: special behaviors that spawn hazards =====
-  function enemySpecial(dt){
-    for (const e of enemies){
-      if (e.type==='spitter'){
-        e.shootCd -= dt;
-        if (e.shootCd <= 0){
-          e.shootCd = rand(900, 1400);
-          const dx = player.x - e.x, dy = player.y - e.y;
-          const [nx,ny]=norm(dx,dy);
-          hazards.push({ type:'spit', x:e.x, y:e.y, vx:nx*590, vy:ny*590, r:8, life:1.2, dmg: 10 + wave*0.55 });
-        }
-      }
-      if (e.boss){
-        e.summonCd -= dt;
-        if (e.summonCd<=0){
-          e.summonCd = rand(1400, 1900);
-          for (let k=0;k<2;k++) spawnEnemy(Math.random()<0.5?'runner':'walker');
-        }
-        e.slamCd -= dt;
-        if (e.slamCd<=0){
-          e.slamCd = rand(1600, 2300);
-          hazards.push({ type:'slam', x:e.x, y:e.y, r: 160, t:0, life:0.95, dmg: 18 + wave*0.75 });
-        }
-      }
-    }
-  }
-
-  // ===== Main Loop =====
-  let last=now();
-  function loop(t){
-    requestAnimationFrame(loop);
-    const dt = Math.min(40, t-last);
-    last=t;
-
-    if (!paused){
-      sceneUpdate(dt);
-      playerUpdate(dt);
-      spawnLogic(dt);
-      fire(dt);
-      bulletsUpdate(dt);
-      hazardsUpdate(dt);
-      enemyUpdate(dt);
-      enemySpecial(dt);
-      collectPickups(dt);
-      particlesUpdate(dt);
-      floatersUpdate(dt);
-      checkWaveEnd();
-    }
-
-    hud();
-    draw();
-  }
-
-  // ===== Buttons / Start =====
-  btnSkill.onclick = trySkill;
-  btnPause.onclick = togglePause;
-  btnShop.onclick = toggleShop;
-
-  function init(){
-    startWave(1);
-    leftEl.textContent = waveLeft;
-    flash('成品向试玩：自动射击已开启（WASD/摇杆移动，右摇杆/鼠标瞄准）');
-  }
-  init();
-  requestAnimationFrame(loop);
-
+  });
 })();
 </script>
-</body>
-</html>
+<script>
+(() => {
+  const ZG = window.ZG; if(!ZG) return;
+
+  // ===== Part5: Meta Progression (save/load + upgrades + gacha) =====
+  const KEY="ZG_META_SAVE_V1";
+
+  function load(){
+    try{
+      const raw=localStorage.getItem(KEY);
+      if(!raw) return;
+      const data=JSON.parse(raw);
+      if(data && data.perm){ ZG.meta.perm = Object.assign(ZG.meta.perm, data.perm); }
+      if(typeof data.gems==="number") ZG.meta.gems=data.gems;
+    }catch{}
+  }
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify({ perm:ZG.meta.perm, gems:ZG.meta.gems }));
+  }
+  load();
+
+  // convert battle gold -> meta gems at game over / or via button
+  function convertGoldToGems(){
+    const g = Math.floor(ZG.player.gold / 80);
+    if(g<=0) return;
+    ZG.player.gold -= g*80;
+    ZG.meta.gems += g;
+    save();
+  }
+
+  function metaPanel(){
+    const p=ZG.meta.perm;
+    const cards=[
+      { t:`永久攻击 +1（当前 ${p.atk}）`, d:"提高子弹/炮塔伤害（全局）", cost: (p.atk+1)*3,
+        on:()=>{ if(ZG.meta.gems < (p.atk+1)*3) return; ZG.meta.gems -= (p.atk+1)*3; p.atk++; save(); } },
+      { t:`永久射速 +1（当前 ${p.fir}）`, d:"提高射速系数（全局）", cost: (p.fir+1)*3,
+        on:()=>{ if(ZG.meta.gems < (p.fir+1)*3) return; ZG.meta.gems -= (p.fir+1)*3; p.fir++; save(); } },
+      { t:`永久生命 +1（当前 ${p.hp}）`, d:"提高生命/护盾（全局）", cost: (p.hp+1)*3,
+        on:()=>{ if(ZG.meta.gems < (p.hp+1)*3) return; ZG.meta.gems -= (p.hp+1)*3; p.hp++; save(); } },
+      { t:`永久金币 +1（当前 ${p.gold}）`, d:"提高金币掉落（全局）", cost: (p.gold+1)*3,
+        on:()=>{ if(ZG.meta.gems < (p.gold+1)*3) return; ZG.meta.gems -= (p.gold+1)*3; p.gold++; save(); } },
+      { t:`抽箱子（2💎）`, d:"随机获得一张“芯片卡”（临时本局加成）", cost:2,
+        on:()=>{ if(ZG.meta.gems<2) return; ZG.meta.gems-=2; const chip = rollChip(); applyChip(chip); save(); } },
+      { t:`兑换金币→💎（80💰=1💎）`, d:"把局内金币换成局外货币", on:()=>{ convertGoldToGems(); } },
+      { t:`清空存档`, d:"测试用：重置局外养成", on:()=>{ localStorage.removeItem(KEY); location.reload(); } },
+    ];
+
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent = `局外养成（💎=${ZG.meta.gems}）`;
+    ZG.ui.modalNote.textContent = "这就是成品的“局外成长”骨架：永久点数 + 抽箱子。下一段做成品化（菜单/平衡/无障碍/音效）。";
+    ZG.ui.cards.innerHTML="";
+    cards.forEach(c=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML = `<div class="t">${c.t} ${c.cost?`（${c.cost}💎）`:``}</div><div class="d">${c.d||""}</div>`;
+      div.onclick = () => { c.on && c.on(); metaPanel(); };
+      ZG.ui.cards.appendChild(div);
+    });
+  }
+
+  // chips (temporary run buffs)
+  const CHIPS=[
+    { t:"芯片：爆伤强化", d:"暴击倍率+0.25（本局）", on:()=>{ ZG.build.critMul += 0.25; } },
+    { t:"芯片：弹幕增幅", d:"溅射+30（本局）", on:()=>{ ZG.build.splash += 30; } },
+    { t:"芯片：连锁增幅", d:"连锁闪电+1（本局）", on:()=>{ ZG.build.chain += 1; } },
+    { t:"芯片：战术装填", d:"射速+10%（本局）", on:()=>{ ZG.build.fireMul *= 1.10; } },
+    { t:"芯片：耐久模块", d:"最大生命+25（本局）", on:()=>{ ZG.player.hpMax += 25; ZG.player.hp += 25; } },
+  ];
+  function rollChip(){ return CHIPS[Math.floor(Math.random()*CHIPS.length)]; }
+  function applyChip(ch){
+    ch.on();
+    ZG.ent.floaters.push({ x:ZG.player.x, y:ZG.player.y-60, vy:-40, life:1.2, a:1, text:ch.t });
+  }
+
+  // Apply permanent buffs into battle (once)
+  function applyPerm(){
+    const p=ZG.meta.perm;
+    ZG.build.dmgMul *= (1 + p.atk*0.06);
+    ZG.build.fireMul*= (1 + p.fir*0.05);
+    ZG.player.hpMax += p.hp*18;
+    ZG.player.hp = ZG.player.hpMax;
+    ZG.player.shMax += p.hp*10;
+    ZG.player.sh = Math.min(ZG.player.shMax, ZG.player.sh + p.hp*8);
+  }
+  // call once after Part3 is loaded
+  setTimeout(()=>{ if(ZG.build) applyPerm(); }, 0);
+
+  // Hook meta button
+  ZG.ui.btnMeta.onclick = metaPanel;
+
+  // Periodic save gems (if any conversion happens)
+  ZG.modules.push(()=>{ /* reserved */ });
+})();
+</script>
+<script>
+(() => {
+  const ZG = window.ZG; if(!ZG) return;
+
+  // ===== Part6: Product polish (menu + a11y + tiny SFX + balancing) =====
+  const audio = (() => {
+    try{
+      const ac = new (window.AudioContext||window.webkitAudioContext)();
+      const beep=(freq=440, dur=0.06, vol=0.04)=>{
+        const o=ac.createOscillator(), g=ac.createGain();
+        o.type="sine"; o.frequency.value=freq;
+        g.gain.value=vol;
+        o.connect(g); g.connect(ac.destination);
+        o.start(); o.stop(ac.currentTime+dur);
+      };
+      return { ac, beep };
+    }catch{ return { beep:()=>{} }; }
+  })();
+
+  // a11y toggles
+  ZG.settings = { bigText:false, highContrast:false, sfx:true };
+
+  function openMenu(){
+    const cards=[
+      { t:"开始游戏", d:"进入战斗（割草+塔防）", on:()=>ZG.ui.overlay.classList.remove("show") },
+      { t:"局外养成", d:"永久强化/抽箱子/存档", on:()=>ZG.ui.btnMeta.onclick() },
+      { t:`无障碍：大字 ${ZG.settings.bigText?"开":"关"}`, d:"更适合老人操作", on:()=>{ZG.settings.bigText=!ZG.settings.bigText; document.body.style.fontSize=ZG.settings.bigText?"18px":"14px"; openMenu();} },
+      { t:`高对比：${ZG.settings.highContrast?"开":"关"}`, d:"更清晰", on:()=>{ZG.settings.highContrast=!ZG.settings.highContrast; openMenu();} },
+      { t:`音效：${ZG.settings.sfx?"开":"关"}`, d:"简易SFX（不吵）", on:()=>{ZG.settings.sfx=!ZG.settings.sfx; openMenu();} },
+    ];
+    ZG.ui.overlay.classList.add("show");
+    ZG.ui.modalTitle.textContent="Z炮 成品试玩（已整合：割草+塔防+养成）";
+    ZG.ui.modalNote.textContent="提示：商店按钮：普通点=割草商店；按住Shift点商店=塔防建造。";
+    ZG.ui.cards.innerHTML="";
+    cards.forEach(c=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML=`<div class="t">${c.t}</div><div class="d">${c.d||""}</div>`;
+      div.onclick=()=>{ if(ZG.settings.sfx) audio.beep(520,0.05,0.035); c.on(); };
+      ZG.ui.cards.appendChild(div);
+    });
+  }
+  openMenu();
+
+  // polish: high contrast affects some draws
+  ZG.hook.draw.push(()=>{
+    if(!ZG.settings.highContrast) return;
+    // simple vignette + brighter outline effect
+    const ctx=ZG.ctx;
+    ctx.globalAlpha=0.06;
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,8,ZG.h); ctx.fillRect(ZG.w-8,0,8,ZG.h);
+    ctx.fillRect(0,0,ZG.w,8); ctx.fillRect(0,ZG.h-8,ZG.w,8);
+    ctx.globalAlpha=1;
+  });
+
+  // SFX events (cheap)
+  const oldSkill = ZG.ui.btnSkill.onclick;
+  if(oldSkill){
+    ZG.ui.btnSkill.onclick = ()=>{ if(ZG.settings.sfx) audio.beep(240,0.08,0.05); oldSkill(); };
+  }
+  const oldShop = ZG.ui.btnShop.onclick;
+  if(oldShop){
+    ZG.ui.btnShop.onclick = ()=>{ if(ZG.settings.sfx) audio.beep(640,0.05,0.03); oldShop(); };
+  }
+
+  // balancing: small regen & gold scaling
+  ZG.modules.push((dt)=>{
+    if(ZG.paused) return;
+    // gentle passive heal per wave (elder friendly)
+    if(ZG.combat && ZG.combat.state==="between"){
+      ZG.player.hp = ZG.clamp(ZG.player.hp + 0.015*dt, 0, ZG.player.hpMax);
+    }
+  });
+})();
+</script>
