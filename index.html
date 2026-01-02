@@ -1,840 +1,712 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RealPower | Decentralized Compute Network</title>
-
-  <!-- Tailwind (CDN for demo; production: build pipeline) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <!--
-    ✅ “完美版本”的核心改变：
-    1) 不在前端暴露 Supabase URL/AnonKey
-    2) 前端不直接写 Supabase 表（改为调用你自己的后端 API）
-    3) 语言切换可记忆 + 14 语完整回退
-    4) 收益数字展示用动画，但真实数值来自后端（不会被一眼看穿“假增长”）
-    5) 任务渲染做 XSS 防护（不直接 innerHTML 注入用户可控字段）
-    6) 更严格表单校验 + 防重复点击 + 友好错误
-    7) 提现按钮合规提示（避免“可提现承诺”风险）
-  -->
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>网页游戏：Roguelike Survivors</title>
   <style>
     :root { color-scheme: dark; }
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: #000;
-      color: #fff;
-      margin: 0;
-      overflow-x: hidden;
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 800px at 20% 20%, rgba(120,160,255,.12), transparent 60%),
+                  radial-gradient(1200px 800px at 80% 80%, rgba(255,120,200,.10), transparent 60%),
+                  #070a12;
+      color:#e8ecff; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      overflow:hidden;
     }
-    .glass {
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(40px);
-      -webkit-backdrop-filter: blur(40px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .wrap{ width:min(95vw, 980px); }
+    .hud{
+      display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      margin-bottom:10px;
     }
-    .grad-text {
-      background: linear-gradient(180deg, #FFFFFF 30%, #666 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .title{ font-weight:900; letter-spacing:.4px; }
+    .pills{ display:flex; gap:10px; flex-wrap:wrap; font-size:14px; }
+    .pill{
+      padding:7px 10px; border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(14px);
     }
-    .neon-border {
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-      border: 1px solid rgba(59, 130, 246, 0.4);
+    .panel{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 18px 70px rgba(0,0,0,.40);
+      backdrop-filter: blur(18px);
     }
-    input, select {
-      background: #080808 !important;
-      border: 1px solid #1a1a1a !important;
-      color: white !important;
+    canvas{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.25);
+      touch-action:none;
     }
-    .shake { animation: shake 0.25s linear 0s 2; }
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-6px); }
-      50% { transform: translateX(6px); }
-      75% { transform: translateX(-4px); }
-      100% { transform: translateX(0); }
+    .row{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+    button{
+      appearance:none; border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color:#e8ecff; padding:10px 12px; border-radius:12px;
+      font-weight:800; cursor:pointer;
+    }
+    button:hover{ background: rgba(255,255,255,.12); }
+    .hint{ margin-top:10px; font-size:13px; opacity:.82; line-height:1.55; }
+
+    /* 升级弹窗 */
+    .overlay{
+      position: fixed; inset: 0; display:none; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.55);
+      padding: 16px;
+    }
+    .overlay.show{ display:flex; }
+    .modal{
+      width: min(720px, 100%);
+      border-radius: 20px;
+      background: rgba(15,18,30,.88);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 30px 120px rgba(0,0,0,.60);
+      padding: 16px;
+      backdrop-filter: blur(18px);
+    }
+    .modal h2{ margin: 4px 0 12px; font-size:18px; }
+    .choices{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    .card{
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 12px;
+      cursor:pointer;
+      min-height: 94px;
+    }
+    .card:hover{ background: rgba(255,255,255,.10); transform: translateY(-1px); }
+    .card .name{ font-weight:900; margin-bottom:6px; }
+    .card .desc{ font-size:13px; opacity:.85; line-height:1.35; }
+    .footerNote{ margin-top: 10px; font-size: 12px; opacity:.75; }
+
+    /* 手机摇杆 */
+    .stick{
+      position: fixed; left: 14px; bottom: 14px;
+      width: 140px; height: 140px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(14px);
+      display:none;
+      touch-action:none;
+      user-select:none;
+    }
+    .stick.show{ display:block; }
+    .knob{
+      position:absolute; left:50%; top:50%;
+      width: 54px; height: 54px; margin-left:-27px; margin-top:-27px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.22);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      pointer-events:none;
     }
   </style>
 </head>
-
-<body class="min-h-screen flex flex-col items-center">
-  <nav class="w-full max-w-7xl p-6 flex justify-between items-center z-50">
-    <div class="font-extrabold text-2xl tracking-tighter italic">REALPOWER</div>
-
-    <select id="lang-select"
-            class="bg-black border border-zinc-800 text-[10px] px-3 py-1 rounded-full text-zinc-400 outline-none"
-            aria-label="Language"
-    >
-      <option value="en">English</option>
-      <option value="zh">简体中文</option>
-      <option value="tw">繁體中文</option>
-      <option value="jp">日本語</option>
-      <option value="kr">한국어</option>
-      <option value="ru">Русский</option>
-      <option value="ar">العربية</option>
-      <option value="vn">Tiếng Việt</option>
-      <option value="th">ภาษาไทย</option>
-      <option value="de">Deutsch</option>
-      <option value="fr">Français</option>
-      <option value="es">Español</option>
-      <option value="pt">Português</option>
-      <option value="tr">Türkçe</option>
-    </select>
-  </nav>
-
-  <main class="flex-1 flex flex-col items-center justify-center w-full max-w-[480px] px-6 pb-20 relative">
-    <div class="absolute w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[100px] -z-10 top-20"></div>
-
-    <!-- AUTH UI -->
-    <div id="auth-ui" class="w-full text-center">
-      <h1 id="t-title" class="text-[52px] font-extrabold leading-[1.1] mb-6 grad-text tracking-tighter">
-        Real Compute.<br>Real Profit.
-      </h1>
-      <p id="t-desc" class="text-zinc-500 text-sm mb-10 px-4 leading-relaxed">
-        Join the global DePIN network. Rent your CPU/GPU power and earn real-time rewards.
-      </p>
-
-      <div class="glass p-8 rounded-[40px] space-y-6 shadow-2xl">
-        <div class="text-left">
-          <label id="l-email"
-                 class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">
-            Account identity
-          </label>
-          <input type="email" id="user-email" placeholder="node@provider.io"
-                 class="w-full p-4 rounded-2xl outline-none text-lg"
-                 autocomplete="email" inputmode="email" />
-          <p id="email-hint" class="mt-2 text-[10px] text-zinc-600 hidden"></p>
-        </div>
-
-        <div class="text-left">
-          <label id="l-node"
-                 class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">
-            Hardware Tier
-          </label>
-          <select id="user-tier" class="w-full p-4 rounded-2xl outline-none cursor-pointer appearance-none">
-            <option value="T1-Enterprise">Tier 1: Enterprise GPU</option>
-            <option value="T2-Standard">Tier 2: Standard PC</option>
-            <option value="T3-Mobile">Tier 3: Mobile Edge</option>
-          </select>
-          <p id="tier-hint" class="mt-2 text-[10px] text-zinc-600 hidden"></p>
-        </div>
-
-        <button id="submit-btn"
-                class="w-full py-5 bg-white text-black font-black rounded-2xl hover:bg-zinc-200 transition text-xl shadow-xl shadow-white/5 disabled:opacity-60 disabled:cursor-not-allowed">
-          <span id="t-btn">Initialize Node</span>
-        </button>
-
-        <div id="auth-error" class="hidden text-left text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4"></div>
-      </div>
-
-      <p class="mt-8 text-[9px] text-zinc-700 tracking-widest uppercase font-bold" id="t-ref-status">
-        Direct Mainnet Connection
-      </p>
-    </div>
-
-    <!-- DASH UI -->
-    <div id="dash-ui" class="hidden w-full space-y-6">
-      <div class="glass p-8 rounded-[48px] text-center relative overflow-hidden neon-border">
-        <div class="flex justify-between items-center mb-8">
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <div id="t-status" class="text-[10px] font-black text-green-500 uppercase tracking-widest">
-              Node Online
-            </div>
-          </div>
-
-          <button id="withdraw-btn"
-                  class="text-[9px] text-zinc-500 border border-zinc-800 px-3 py-1 rounded-full hover:bg-white hover:text-black">
-            WITHDRAW
-          </button>
-        </div>
-
-        <div class="py-6">
-          <div id="l-revenue" class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-2">
-            Network Earnings
-          </div>
-
-          <div class="text-7xl font-bold tracking-tighter grad-text" id="profit-counter">0.000000</div>
-
-          <div class="text-[10px] text-zinc-600 tracking-[0.5em] mt-4 font-black uppercase tracking-tighter">
-            WIR Tokens
-          </div>
-
-          <div id="dash-note" class="mt-6 text-[10px] text-zinc-600">
-            <!-- filled by i18n -->
-          </div>
-        </div>
-      </div>
-
-      <div class="glass p-6 rounded-[32px] space-y-4">
-        <div class="flex justify-between items-center px-2 border-b border-white/5 pb-4">
-          <label id="l-tasks" class="text-[10px] text-zinc-600 font-black tracking-widest uppercase">
-            Profit Stream (Tasks)
-          </label>
-          <div class="text-[9px] text-blue-500 font-bold animate-pulse" id="t-live">
-            REVENUE LIVE
-          </div>
-        </div>
-
-        <div id="task-list" class="space-y-3">
-          <div class="text-[10px] text-zinc-800 italic py-4 text-center" id="t-task-loading">
-            Syncing available task pools...
-          </div>
-        </div>
-
-        <div id="task-error" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4"></div>
+<body>
+  <div class="wrap">
+    <div class="hud">
+      <div class="title">⚔️ Roguelike Survivors（高级单文件）</div>
+      <div class="pills">
+        <div class="pill">HP：<span id="hp">0</span>/<span id="hpMax">0</span></div>
+        <div class="pill">等级：<span id="lv">1</span></div>
+        <div class="pill">EXP：<span id="exp">0</span>/<span id="expNeed">0</span></div>
+        <div class="pill">击杀：<span id="kills">0</span></div>
+        <div class="pill">时间：<span id="time">0:00</span></div>
       </div>
     </div>
-  </main>
 
-  <script>
-    /***********************
-     * CONFIG (NO KEYS HERE)
-     ***********************/
-    const API_BASE = ""; // same origin. If your API is another domain: "https://api.yourdomain.com"
-    const LS_LANG_KEY = "realpower_lang";
-    const LS_SESSION_KEY = "realpower_session";
-    const REF_PARAM = "ref";
+    <div class="panel">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div class="row">
+        <button id="btnRestart">重新开始</button>
+        <button id="btnPause">暂停</button>
+      </div>
+      <div class="hint">
+        电脑：WASD / 方向键移动，自动射击，P/空格暂停。<br/>
+        手机：左下角摇杆移动（若未显示，点一下屏幕）。<br/>
+        升级会弹出“三选一技能”，越活越强。
+      </div>
+    </div>
+  </div>
 
-    /***********************
-     * I18N (14 languages, full fallback)
-     ***********************/
-    const i18n = {
-      en: {
-        title: "Real Compute.<br>Real Profit.",
-        desc: "Rent hardware. Start earning.",
-        email: "Account Identity",
-        node: "Hardware Tier",
-        btn: "Initialize Node",
-        status: "Node Online",
-        revenue: "Network Earnings",
-        tasks: "Profit Stream (Tasks)",
-        live: "REVENUE LIVE",
-        taskLoading: "Syncing available task pools...",
-        withdraw: "WITHDRAW",
-        withdrawInfo: "Claim opens soon. Rewards currently have no monetary value.",
-        dashNote: "Balance updates are synced from the network ledger.",
-        errInvalidEmail: "Please enter a valid email address.",
-        errBusy: "Processing... please wait.",
-        errGeneric: "Something went wrong. Please try again."
-      },
-      zh: {
-        title: "真实算力。<br>真实收益。",
-        desc: "出租硬件资源，立即获得收益。",
-        email: "身份认证与收款",
-        node: "硬件等级",
-        btn: "初始化节点",
-        status: "节点已上线",
-        revenue: "网络累计收益",
-        tasks: "实时赚钱任务",
-        live: "收益实时同步",
-        taskLoading: "正在同步可用任务池…",
-        withdraw: "提现",
-        withdrawInfo: "即将开放领取。当前奖励不具备法币价值。",
-        dashNote: "收益从网络账本同步更新。",
-        errInvalidEmail: "请输入有效的邮箱地址。",
-        errBusy: "处理中…请稍候。",
-        errGeneric: "出现错误，请稍后重试。"
-      },
-      tw: {
-        title: "真實算力。<br>真實收益。",
-        desc: "出租硬體資源，立即獲得收益。",
-        email: "身份認證與收款",
-        node: "硬體等級",
-        btn: "初始化節點",
-        status: "節點已上線",
-        revenue: "網路累計收益",
-        tasks: "即時賺錢任務",
-        live: "收益即時同步",
-        taskLoading: "正在同步可用任務池…",
-        withdraw: "提領",
-        withdrawInfo: "即將開放領取。當前獎勵不具備法幣價值。",
-        dashNote: "收益從網路帳本同步更新。",
-        errInvalidEmail: "請輸入有效的電子郵件。",
-        errBusy: "處理中…請稍候。",
-        errGeneric: "發生錯誤，請稍後再試。"
-      },
-      jp: {
-        title: "リアル演算。<br>リアル利益。",
-        desc: "ハードウェアを貸し出す。収益を開始。",
-        email: "アカウントID",
-        node: "ハードウェア層",
-        btn: "ノードを初期化",
-        status: "オンライン",
-        revenue: "ネットワーク収益",
-        tasks: "収益タスク",
-        live: "収益同期中",
-        taskLoading: "タスクプールを同期中…",
-        withdraw: "出金",
-        withdrawInfo: "近日公開。現在の報酬は金銭的価値を持ちません。",
-        dashNote: "残高は台帳から同期更新されます。",
-        errInvalidEmail: "有効なメールアドレスを入力してください。",
-        errBusy: "処理中…お待ちください。",
-        errGeneric: "エラーが発生しました。もう一度お試しください。"
-      },
-      kr: {
-        title: "리얼 컴퓨팅.<br>리얼 수익.",
-        desc: "하드웨어를 대여하고 수익을 시작하세요.",
-        email: "계정 식별",
-        node: "하드웨어 등급",
-        btn: "노드 초기화",
-        status: "노드 온라인",
-        revenue: "네트워크 수익",
-        tasks: "수익 작업",
-        live: "실시간 수익",
-        taskLoading: "작업 풀 동기화 중…",
-        withdraw: "출금",
-        withdrawInfo: "곧 오픈됩니다. 현재 보상은 금전적 가치가 없습니다.",
-        dashNote: "잔액은 네트워크 원장에서 동기화됩니다.",
-        errInvalidEmail: "유효한 이메일을 입력하세요.",
-        errBusy: "처리 중…잠시만요.",
-        errGeneric: "문제가 발생했습니다. 다시 시도하세요."
-      },
-      ru: {
-        title: "Реальные вычисления.<br>Реальная прибыль.",
-        desc: "Сдавайте оборудование в аренду. Начните зарабатывать.",
-        email: "Идентификатор аккаунта",
-        node: "Уровень оборудования",
-        btn: "Инициализировать ноду",
-        status: "Нода онлайн",
-        revenue: "Доход сети",
-        tasks: "Поток задач",
-        live: "ДОХОД В РЕАЛЬНОМ ВРЕМЕНИ",
-        taskLoading: "Синхронизация пулов задач…",
-        withdraw: "ВЫВОД",
-        withdrawInfo: "Скоро. Текущие награды не имеют денежной ценности.",
-        dashNote: "Баланс синхронизируется из реестра сети.",
-        errInvalidEmail: "Введите корректный email.",
-        errBusy: "Обработка… подождите.",
-        errGeneric: "Ошибка. Попробуйте ещё раз."
-      },
-      ar: {
-        title: "حوسبة حقيقية.<br>ربح حقيقي.",
-        desc: "قم بتأجير العتاد وابدأ بالربح.",
-        email: "هوية الحساب",
-        node: "فئة العتاد",
-        btn: "تهيئة العقدة",
-        status: "العقدة متصلة",
-        revenue: "أرباح الشبكة",
-        tasks: "مهام الربح",
-        live: "الأرباح مباشرة",
-        taskLoading: "جارٍ مزامنة المهام…",
-        withdraw: "سحب",
-        withdrawInfo: "قريباً. المكافآت الحالية ليست ذات قيمة نقدية.",
-        dashNote: "يتم تحديث الرصيد من دفتر الشبكة.",
-        errInvalidEmail: "يرجى إدخال بريد إلكتروني صحيح.",
-        errBusy: "جارٍ المعالجة…",
-        errGeneric: "حدث خطأ. حاول مرة أخرى."
-      },
-      vn: {
-        title: "Tính toán thật.<br>Lợi nhuận thật.",
-        desc: "Cho thuê phần cứng. Bắt đầu kiếm tiền.",
-        email: "Định danh tài khoản",
-        node: "Cấp phần cứng",
-        btn: "Khởi tạo node",
-        status: "Node Online",
-        revenue: "Thu nhập mạng",
-        tasks: "Luồng nhiệm vụ",
-        live: "DOANH THU TRỰC TIẾP",
-        taskLoading: "Đang đồng bộ pool nhiệm vụ…",
-        withdraw: "RÚT",
-        withdrawInfo: "Sắp mở. Phần thưởng hiện tại không có giá trị tiền tệ.",
-        dashNote: "Số dư được đồng bộ từ sổ cái mạng.",
-        errInvalidEmail: "Vui lòng nhập email hợp lệ.",
-        errBusy: "Đang xử lý… vui lòng đợi.",
-        errGeneric: "Có lỗi xảy ra. Thử lại."
-      },
-      th: {
-        title: "คอมพิวต์จริง<br>กำไรจริง",
-        desc: "ให้เช่าฮาร์ดแวร์ เริ่มรับรายได้",
-        email: "ตัวตนบัญชี",
-        node: "ระดับฮาร์ดแวร์",
-        btn: "เริ่มต้นโหนด",
-        status: "โหนดออนไลน์",
-        revenue: "รายได้เครือข่าย",
-        tasks: "งานสร้างรายได้",
-        live: "รายได้สด",
-        taskLoading: "กำลังซิงก์งาน…",
-        withdraw: "ถอน",
-        withdrawInfo: "เร็ว ๆ นี้ รางวัลปัจจุบันไม่มีมูลค่าเป็นเงิน",
-        dashNote: "ยอดคงเหลือซิงก์จากเลดเจอร์เครือข่าย",
-        errInvalidEmail: "กรุณาใส่อีเมลที่ถูกต้อง",
-        errBusy: "กำลังประมวลผล…",
-        errGeneric: "เกิดข้อผิดพลาด ลองใหม่"
-      },
-      de: {
-        title: "Echte Rechenleistung.<br>Echter Profit.",
-        desc: "Hardware vermieten. Verdienen starten.",
-        email: "Account-Identität",
-        node: "Hardware-Stufe",
-        btn: "Node initialisieren",
-        status: "Node online",
-        revenue: "Netzwerk-Einnahmen",
-        tasks: "Aufgaben-Stream",
-        live: "EINNAHMEN LIVE",
-        taskLoading: "Aufgabenpools werden synchronisiert…",
-        withdraw: "AUSZAHLEN",
-        withdrawInfo: "Bald verfügbar. Aktuelle Rewards haben keinen Geldwert.",
-        dashNote: "Balance wird aus dem Ledger synchronisiert.",
-        errInvalidEmail: "Bitte eine gültige E-Mail eingeben.",
-        errBusy: "Wird verarbeitet…",
-        errGeneric: "Fehler. Bitte erneut versuchen."
-      },
-      fr: {
-        title: "Calcul réel.<br>Profit réel.",
-        desc: "Louez votre matériel. Commencez à gagner.",
-        email: "Identité du compte",
-        node: "Niveau matériel",
-        btn: "Initialiser le nœud",
-        status: "Nœud en ligne",
-        revenue: "Gains du réseau",
-        tasks: "Flux de tâches",
-        live: "GAINS EN DIRECT",
-        taskLoading: "Synchronisation des tâches…",
-        withdraw: "RETIRER",
-        withdrawInfo: "Bientôt. Les récompenses n’ont pas de valeur monétaire.",
-        dashNote: "Le solde est synchronisé depuis le registre.",
-        errInvalidEmail: "Veuillez entrer un e-mail valide.",
-        errBusy: "Traitement…",
-        errGeneric: "Une erreur est survenue. Réessayez."
-      },
-      es: {
-        title: "Cómputo real.<br>Ganancia real.",
-        desc: "Alquila tu hardware. Empieza a ganar.",
-        email: "Identidad de cuenta",
-        node: "Nivel de hardware",
-        btn: "Inicializar nodo",
-        status: "Nodo en línea",
-        revenue: "Ganancias de la red",
-        tasks: "Flujo de tareas",
-        live: "GANANCIAS EN VIVO",
-        taskLoading: "Sincronizando tareas…",
-        withdraw: "RETIRAR",
-        withdrawInfo: "Próximamente. Las recompensas actuales no tienen valor monetario.",
-        dashNote: "El saldo se sincroniza desde el libro mayor.",
-        errInvalidEmail: "Introduce un correo válido.",
-        errBusy: "Procesando…",
-        errGeneric: "Ocurrió un error. Intenta de nuevo."
-      },
-      pt: {
-        title: "Cálculo real.<br>Lucro real.",
-        desc: "Alugue hardware. Comece a ganhar.",
-        email: "Identidade da conta",
-        node: "Nível de hardware",
-        btn: "Inicializar nó",
-        status: "Nó online",
-        revenue: "Ganhos da rede",
-        tasks: "Fluxo de tarefas",
-        live: "GANHOS AO VIVO",
-        taskLoading: "Sincronizando tarefas…",
-        withdraw: "SACAR",
-        withdrawInfo: "Em breve. Recompensas atuais não têm valor monetário.",
-        dashNote: "Saldo sincronizado do ledger.",
-        errInvalidEmail: "Insira um e-mail válido.",
-        errBusy: "Processando…",
-        errGeneric: "Algo deu errado. Tente novamente."
-      },
-      tr: {
-        title: "Gerçek Hesaplama.<br>Gerçek Kâr.",
-        desc: "Donanım kiralayın. Kazanmaya başlayın.",
-        email: "Hesap kimliği",
-        node: "Donanım seviyesi",
-        btn: "Düğümü başlat",
-        status: "Düğüm çevrimiçi",
-        revenue: "Ağ kazançları",
-        tasks: "Görev akışı",
-        live: "KAZANÇ CANLI",
-        taskLoading: "Görev havuzları senkronize ediliyor…",
-        withdraw: "ÇEK",
-        withdrawInfo: "Yakında. Mevcut ödüllerin parasal değeri yoktur.",
-        dashNote: "Bakiye defterden senkronize edilir.",
-        errInvalidEmail: "Geçerli bir e-posta girin.",
-        errBusy: "İşleniyor…",
-        errGeneric: "Bir hata oluştu. Tekrar deneyin."
-      }
-    };
+  <div class="stick" id="stick" aria-label="摇杆">
+    <div class="knob" id="knob"></div>
+  </div>
 
-    function getLang() {
-      const saved = localStorage.getItem(LS_LANG_KEY);
-      const select = document.getElementById("lang-select").value;
-      return saved || select || "en";
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>升级！选择一个强化</h2>
+      <div class="choices" id="choices"></div>
+      <div class="footerNote">提示：优先“射速/穿透/移速”会更爽。</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ====== 基础工具 ======
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const len = (x,y) => Math.hypot(x,y);
+  const norm = (x,y) => {
+    const l = Math.hypot(x,y) || 1;
+    return [x/l, y/l];
+  };
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
+
+  // ====== 画布 ======
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  // 视野/世界
+  const W = canvas.width, H = canvas.height;
+  const world = { w: 2600, h: 1800 };
+
+  // ====== HUD ======
+  const el = (id) => document.getElementById(id);
+  const hpEl = el('hp'), hpMaxEl = el('hpMax');
+  const lvEl = el('lv'), expEl = el('exp'), expNeedEl = el('expNeed');
+  const killsEl = el('kills'), timeEl = el('time');
+
+  // ====== UI ======
+  const overlay = el('overlay');
+  const choicesEl = el('choices');
+  const btnRestart = el('btnRestart');
+  const btnPause = el('btnPause');
+
+  // 摇杆
+  const stick = el('stick');
+  const knob = el('knob');
+  let joyActive = false, joyId = null;
+  let joyCenter = {x:0,y:0};
+  let joyVec = {x:0,y:0}; // -1..1
+
+  // ====== 输入 ======
+  const keys = new Set();
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    keys.add(k);
+    if (k === ' ' || k === 'p') { e.preventDefault(); togglePause(); }
+  }, {passive:false});
+  window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+
+  // 点击/触摸：显示摇杆（移动端）
+  const isTouch = matchMedia('(pointer: coarse)').matches;
+  if (isTouch) stick.classList.add('show');
+  window.addEventListener('pointerdown', () => { if (isTouch) stick.classList.add('show'); }, {once:true});
+
+  // 摇杆事件
+  stick.addEventListener('pointerdown', (e) => {
+    joyActive = true; joyId = e.pointerId;
+    stick.setPointerCapture(joyId);
+    const r = stick.getBoundingClientRect();
+    joyCenter = {x: r.left + r.width/2, y: r.top + r.height/2};
+    updateJoy(e.clientX, e.clientY);
+  });
+  stick.addEventListener('pointermove', (e) => {
+    if (!joyActive || e.pointerId !== joyId) return;
+    updateJoy(e.clientX, e.clientY);
+  });
+  stick.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== joyId) return;
+    joyActive = false; joyId = null;
+    joyVec.x = 0; joyVec.y = 0;
+    knob.style.transform = `translate(0px,0px)`;
+  });
+
+  function updateJoy(px, py){
+    const dx = px - joyCenter.x;
+    const dy = py - joyCenter.y;
+    const maxR = 42;
+    const l = Math.hypot(dx,dy);
+    const nx = (l > 0) ? dx / Math.max(l, 1) : 0;
+    const ny = (l > 0) ? dy / Math.max(l, 1) : 0;
+    const mag = clamp(l / maxR, 0, 1);
+    joyVec.x = nx * mag;
+    joyVec.y = ny * mag;
+    knob.style.transform = `translate(${nx*mag*maxR}px, ${ny*mag*maxR}px)`;
+  }
+
+  // ====== 游戏状态 ======
+  let running = true;
+  let paused = false;
+  let t0 = performance.now();
+
+  const player = {
+    x: world.w/2, y: world.h/2,
+    r: 16,
+    hpMax: 100, hp: 100,
+    speed: 240, // px/s
+    dmg: 14,
+    fireRate: 3.2, // shots/s
+    bulletSpeed: 520,
+    pierce: 1, // 穿透数量
+    invuln: 0
+  };
+
+  let bullets = [];
+  let enemies = [];
+  let orbs = [];   // 经验球
+  let kills = 0;
+
+  let level = 1;
+  let exp = 0;
+  let expNeed = 40;
+
+  // 刷怪
+  let spawnTimer = 0;
+  let spawnRate = 0.85; // 秒
+  let diff = 1;
+
+  // 射击
+  let fireCd = 0;
+
+  // ====== 升级池 ======
+  const upgrades = [
+    {
+      key:'firerate', name:'🔥 射速 +20%',
+      desc:'更频繁射击（提升清场效率）',
+      apply: () => player.fireRate *= 1.2
+    },
+    {
+      key:'dmg', name:'💥 伤害 +25%',
+      desc:'每发子弹更痛（更快秒怪）',
+      apply: () => player.dmg *= 1.25
+    },
+    {
+      key:'speed', name:'💨 移速 +15%',
+      desc:'更容易风筝与走位',
+      apply: () => player.speed *= 1.15
+    },
+    {
+      key:'pierce', name:'🗡️ 穿透 +1',
+      desc:'子弹可穿更多敌人',
+      apply: () => player.pierce += 1
+    },
+    {
+      key:'hp', name:'🩸 最大生命 +20',
+      desc:'更耐打，同时回复到满血',
+      apply: () => { player.hpMax += 20; player.hp = player.hpMax; }
+    },
+    {
+      key:'bullet', name:'🎯 弹速 +15%',
+      desc:'更容易命中快速敌人',
+      apply: () => player.bulletSpeed *= 1.15
+    }
+  ];
+
+  // ====== 控制按钮 ======
+  btnRestart.addEventListener('click', () => reset());
+  btnPause.addEventListener('click', () => togglePause());
+
+  function togglePause(){
+    if (!running) return;
+    paused = !paused;
+  }
+
+  function reset(){
+    running = true; paused = false;
+    t0 = performance.now();
+    player.x = world.w/2; player.y = world.h/2;
+    player.hpMax = 100; player.hp = 100;
+    player.speed = 240;
+    player.dmg = 14;
+    player.fireRate = 3.2;
+    player.bulletSpeed = 520;
+    player.pierce = 1;
+    player.invuln = 0;
+
+    bullets = [];
+    enemies = [];
+    orbs = [];
+    kills = 0;
+
+    level = 1; exp = 0; expNeed = 40;
+    spawnTimer = 0; spawnRate = 0.85; diff = 1;
+    fireCd = 0;
+
+    overlay.classList.remove('show');
+    updateHUD();
+  }
+
+  // ====== 经验&升级 ======
+  function gainExp(amount){
+    exp += amount;
+    while (exp >= expNeed) {
+      exp -= expNeed;
+      level += 1;
+      expNeed = Math.floor(expNeed * 1.22 + 10);
+      // 难度随等级上升
+      diff = 1 + (level-1)*0.08;
+      spawnRate = Math.max(0.25, 0.85 - (level-1)*0.02);
+      // 弹出升级
+      openUpgrade();
+    }
+  }
+
+  function openUpgrade(){
+    paused = true;
+    overlay.classList.add('show');
+
+    choicesEl.innerHTML = '';
+    const pool = [...upgrades];
+    // 抽3个不重复
+    const picks = [];
+    while (picks.length < 3 && pool.length) {
+      const u = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
+      picks.push(u);
     }
 
-    function t() {
-      const lang = getLang();
-      return i18n[lang] || i18n.en;
-    }
-
-    function applyLang(lang) {
-      localStorage.setItem(LS_LANG_KEY, lang);
-
-      // RTL support for Arabic
-      if (lang === "ar") {
-        document.documentElement.dir = "rtl";
-      } else {
-        document.documentElement.dir = "ltr";
-      }
-
-      const pack = i18n[lang] || i18n.en;
-      document.getElementById("t-title").innerHTML = pack.title;
-      document.getElementById("t-desc").innerText = pack.desc;
-      document.getElementById("l-email").innerText = pack.email;
-      document.getElementById("l-node").innerText = pack.node;
-      document.getElementById("t-btn").innerText = pack.btn;
-      document.getElementById("t-status").innerText = pack.status;
-      document.getElementById("l-revenue").innerText = pack.revenue;
-      document.getElementById("l-tasks").innerText = pack.tasks;
-      document.getElementById("t-live").innerText = pack.live;
-      document.getElementById("t-task-loading").innerText = pack.taskLoading;
-      document.getElementById("withdraw-btn").innerText = pack.withdraw;
-      document.getElementById("dash-note").innerText = pack.dashNote;
-    }
-
-    /***********************
-     * Helpers (安全渲染 / 校验 / UI)
-     ***********************/
-    function qs(name) {
-      const params = new URLSearchParams(window.location.search);
-      return params.get(name);
-    }
-
-    function normalizeRef(ref) {
-      // 只允许安全字符，避免注入、脏数据
-      if (!ref) return "Official_Root";
-      const cleaned = String(ref).trim().slice(0, 64).replace(/[^a-zA-Z0-9_\-]/g, "");
-      return cleaned || "Official_Root";
-    }
-
-    function isValidEmail(email) {
-      // 简洁但靠谱的 email 校验
-      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim());
-    }
-
-    function setError(msg) {
-      const box = document.getElementById("auth-error");
-      box.classList.remove("hidden");
-      box.textContent = msg;
-      box.classList.add("shake");
-      setTimeout(() => box.classList.remove("shake"), 400);
-    }
-
-    function clearError() {
-      const box = document.getElementById("auth-error");
-      box.classList.add("hidden");
-      box.textContent = "";
-    }
-
-    function setTaskError(msg) {
-      const box = document.getElementById("task-error");
-      box.classList.remove("hidden");
-      box.textContent = msg;
-    }
-
-    function clearTaskError() {
-      const box = document.getElementById("task-error");
-      box.classList.add("hidden");
-      box.textContent = "";
-    }
-
-    async function api(path, { method = "GET", body } = {}) {
-      const headers = { "Content-Type": "application/json" };
-      const session = loadSession();
-      if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
-
-      const res = await fetch(API_BASE + path, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-        credentials: "same-origin"
+    for (const u of picks){
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `<div class="name">${u.name}</div><div class="desc">${u.desc}</div>`;
+      div.addEventListener('click', () => {
+        u.apply();
+        overlay.classList.remove('show');
+        paused = false;
+        updateHUD();
       });
+      choicesEl.appendChild(div);
+    }
+  }
 
-      // 统一错误
-      const text = await res.text();
-      let json;
-      try { json = text ? JSON.parse(text) : {}; } catch { json = { message: text || "Invalid response" }; }
+  // ====== 实体创建 ======
+  function spawnEnemy(){
+    // 在屏幕外边缘生成
+    const margin = 260;
+    const cam = camera();
+    const side = Math.floor(Math.random()*4);
+    let x,y;
+    if (side===0){ x = cam.x - margin; y = cam.y + rand(-margin, H+margin); }
+    if (side===1){ x = cam.x + W + margin; y = cam.y + rand(-margin, H+margin); }
+    if (side===2){ x = cam.x + rand(-margin, W+margin); y = cam.y - margin; }
+    if (side===3){ x = cam.x + rand(-margin, W+margin); y = cam.y + H + margin; }
 
-      if (!res.ok) {
-        const msg = json?.message || `${res.status} ${res.statusText}`;
-        throw new Error(msg);
-      }
-      return json;
+    // clamp 到世界范围外稍许（允许边缘刷）
+    x = clamp(x, -80, world.w+80);
+    y = clamp(y, -80, world.h+80);
+
+    const base = 26;
+    const r = clamp(base * rand(0.75, 1.15), 16, 34);
+    const hp = Math.floor((22 + r*0.9) * diff);
+    const speed = clamp((90 + rand(-20, 30)) * (1 + (diff-1)*0.25), 80, 220);
+
+    enemies.push({ x,y,r, hp, hpMax: hp, speed, hitCd: 0 });
+  }
+
+  function fireAt(targetX, targetY){
+    const dx = targetX - player.x;
+    const dy = targetY - player.y;
+    const [nx, ny] = norm(dx, dy);
+    const sp = player.bulletSpeed;
+    bullets.push({
+      x: player.x + nx*(player.r+6),
+      y: player.y + ny*(player.r+6),
+      vx: nx*sp, vy: ny*sp,
+      r: 5,
+      dmg: player.dmg,
+      pierce: player.pierce,
+      life: 1.6
+    });
+  }
+
+  function dropOrb(x,y){
+    orbs.push({ x,y, r: 6, v: 0, t: 0 });
+  }
+
+  // ====== 摄像机 ======
+  function camera(){
+    // 让玩家居中，但限制在世界边界
+    const cx = clamp(player.x - W/2, 0, world.w - W);
+    const cy = clamp(player.y - H/2, 0, world.h - H);
+    return { x: cx, y: cy };
+  }
+
+  // ====== 更新 ======
+  function update(dt){
+    if (!running || paused) return;
+
+    // 时间难度（存活越久越难）
+    const alive = (performance.now() - t0) / 1000;
+    const timeFactor = 1 + alive * 0.015;
+    const curDiff = diff * timeFactor;
+
+    // 玩家移动
+    let mx = 0, my = 0;
+    if (keys.has('w') || keys.has('arrowup')) my -= 1;
+    if (keys.has('s') || keys.has('arrowdown')) my += 1;
+    if (keys.has('a') || keys.has('arrowleft')) mx -= 1;
+    if (keys.has('d') || keys.has('arrowright')) mx += 1;
+
+    // 手机摇杆叠加
+    if (isTouch) { mx += joyVec.x; my += joyVec.y; }
+
+    if (mx !== 0 || my !== 0){
+      const [nx, ny] = norm(mx, my);
+      player.x = clamp(player.x + nx * player.speed * dt, 0, world.w);
+      player.y = clamp(player.y + ny * player.speed * dt, 0, world.h);
     }
 
-    function saveSession(session) {
-      localStorage.setItem(LS_SESSION_KEY, JSON.stringify(session));
-    }
-    function loadSession() {
-      try { return JSON.parse(localStorage.getItem(LS_SESSION_KEY) || "null"); }
-      catch { return null; }
-    }
-    function clearSession() {
-      localStorage.removeItem(LS_SESSION_KEY);
-    }
+    if (player.invuln > 0) player.invuln -= dt;
 
-    function showDashboard() {
-      document.getElementById("auth-ui").style.display = "none";
-      document.getElementById("dash-ui").style.display = "block";
+    // 刷怪
+    spawnTimer += dt;
+    const rate = Math.max(0.18, spawnRate / timeFactor);
+    while (spawnTimer >= rate){
+      spawnTimer -= rate;
+      // 每次可能刷多个（随时间）
+      const pack = (alive > 60) ? 2 : (alive > 120 ? 3 : 1);
+      for (let i=0;i<pack;i++) spawnEnemy();
     }
 
-    function showAuth() {
-      document.getElementById("auth-ui").style.display = "block";
-      document.getElementById("dash-ui").style.display = "none";
-    }
-
-    /***********************
-     * Profit counter (动画显示，但数值来自后端)
-     ***********************/
-    let counterRAF = null;
-    let currentDisplay = 0;
-    let targetDisplay = 0;
-
-    function startCounterAnimation() {
-      if (counterRAF) cancelAnimationFrame(counterRAF);
-
-      const el = document.getElementById("profit-counter");
-      const step = () => {
-        // 平滑追随目标值
-        const diff = targetDisplay - currentDisplay;
-        currentDisplay += diff * 0.12; // 追随速度
-        if (Math.abs(diff) < 0.000001) currentDisplay = targetDisplay;
-
-        el.textContent = Number(currentDisplay).toFixed(6);
-
-        counterRAF = requestAnimationFrame(step);
-      };
-      counterRAF = requestAnimationFrame(step);
-    }
-
-    /***********************
-     * Tasks rendering (XSS safe)
-     ***********************/
-    function createTaskRow(task) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition duration-500";
-
-      const left = document.createElement("div");
-      left.className = "text-left";
-
-      const name = document.createElement("div");
-      name.className = "text-[11px] font-bold text-white tracking-tight";
-      name.textContent = task.task_name ?? "Task";
-
-      const reward = document.createElement("div");
-      reward.className = "text-[9px] text-green-500 font-black";
-      const r = Number(task.reward || 0);
-      reward.textContent = `+${r.toFixed(2)} WIR BOOST`;
-
-      left.appendChild(name);
-      left.appendChild(reward);
-
-      const btn = document.createElement("button");
-      btn.className = "px-5 py-2 bg-white text-black text-[10px] font-black rounded-xl hover:bg-blue-500 hover:text-white transition";
-      btn.textContent = "EARN";
-      btn.type = "button";
-
-      // 安全打开链接：只允许 http(s)
-      btn.addEventListener("click", () => {
-        const url = String(task.link || "");
-        if (!/^https?:\/\//i.test(url)) return;
-        window.open(url, "_blank", "noopener,noreferrer");
-      });
-
-      wrapper.appendChild(left);
-      wrapper.appendChild(btn);
-      return wrapper;
-    }
-
-    /***********************
-     * Main flow
-     ***********************/
-    let busy = false;
-    const referrerId = normalizeRef(qs(REF_PARAM));
-
-    async function initNode() {
-      if (busy) return;
-
-      clearError();
-
-      const email = document.getElementById("user-email").value.trim();
-      const tier = document.getElementById("user-tier").value;
-
-      if (!isValidEmail(email)) {
-        setError(t().errInvalidEmail);
-        return;
-      }
-
-      busy = true;
-      const btn = document.getElementById("submit-btn");
-      btn.disabled = true;
-      btn.querySelector("span").textContent = t().errBusy;
-
-      try {
-        /**
-         * ✅ 后端必须做的事（你 API 里做）：
-         * - 校验 email / tier / referrerId
-         * - 防刷限频（IP、email hash、设备指纹可选）
-         * - 写入数据库 miners（或你自己的表）
-         * - 返回 session token（或 node_id + token）
-         *
-         * 这里调用你的后端：
-         */
-        const session = await api("/api/init-node", {
-          method: "POST",
-          body: { email, tier, referrer_id: referrerId }
-        });
-
-        // 示例返回结构：{ token, node_id }
-        saveSession(session);
-
-        showDashboard();
-
-        // 拉一次余额 & 任务
-        await Promise.all([
-          syncBalanceOnce(),
-          loadTasks()
-        ]);
-
-        // 开始余额动画
-        startCounterAnimation();
-
-        // 每 8 秒同步一次（节制请求）
-        setInterval(syncBalanceOnce, 8000);
-
-      } catch (e) {
-        setError(e?.message || t().errGeneric);
-        btn.disabled = false;
-        btn.querySelector("span").textContent = t().btn;
-        busy = false;
-        return;
-      }
-
-      // done
-      btn.disabled = false;
-      btn.querySelector("span").textContent = t().btn;
-      busy = false;
-    }
-
-    async function syncBalanceOnce() {
-      const session = loadSession();
-      if (!session?.token) return;
-
-      try {
-        // 你的后端返回：{ balance: number }
-        const data = await api("/api/balance", { method: "GET" });
-        const b = Number(data.balance || 0);
-        targetDisplay = b;
-      } catch (e) {
-        // 不强打断 UI，只轻提示
-        // console.warn(e);
+    // 自动射击：找最近敌人
+    fireCd -= dt;
+    if (fireCd <= 0 && enemies.length){
+      const e = nearestEnemy();
+      if (e){
+        fireAt(e.x, e.y);
+        fireCd = 1 / player.fireRate;
       }
     }
 
-    async function loadTasks() {
-      clearTaskError();
-      const container = document.getElementById("task-list");
-      container.innerHTML = "";
+    // 子弹更新
+    for (let i=bullets.length-1;i>=0;i--){
+      const b = bullets[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      if (b.life <= 0 || b.x < -200 || b.y < -200 || b.x > world.w+200 || b.y > world.h+200){
+        bullets.splice(i,1);
+      }
+    }
 
-      const loading = document.createElement("div");
-      loading.className = "text-[10px] text-zinc-800 italic py-4 text-center";
-      loading.textContent = t().taskLoading;
-      container.appendChild(loading);
+    // 敌人更新&追踪
+    for (let i=enemies.length-1;i>=0;i--){
+      const e = enemies[i];
+      const dx = player.x - e.x, dy = player.y - e.y;
+      const [nx, ny] = norm(dx, dy);
+      e.x += nx * e.speed * dt;
+      e.y += ny * e.speed * dt;
 
-      try {
-        /**
-         * ✅ 后端必须做的事：
-         * - tasks 只读输出（不要让前端直接 select supabase）
-         * - 对 link 做白名单或协议限制
-         * 返回：{ tasks: [{task_name, reward, link}, ...] }
-         */
-        const data = await api("/api/tasks", { method: "GET" });
-        const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      if (e.hitCd > 0) e.hitCd -= dt;
 
-        container.innerHTML = "";
-        if (!tasks.length) {
-          const empty = document.createElement("div");
-          empty.className = "text-[10px] text-zinc-700 italic py-4 text-center";
-          empty.textContent = "No tasks available right now.";
-          container.appendChild(empty);
-          return;
+      // 敌人碰撞玩家
+      const d = Math.hypot(player.x - e.x, player.y - e.y);
+      if (d < player.r + e.r){
+        if (player.invuln <= 0){
+          player.hp -= 10;
+          player.invuln = 0.55;
+          if (player.hp <= 0){
+            player.hp = 0;
+            running = false;
+            paused = false;
+          }
         }
+      }
+    }
 
-        for (const task of tasks) {
-          container.appendChild(createTaskRow(task));
+    // 子弹 vs 敌人碰撞
+    for (let bi=bullets.length-1; bi>=0; bi--){
+      const b = bullets[bi];
+      for (let ei=enemies.length-1; ei>=0; ei--){
+        const e = enemies[ei];
+        const d = Math.hypot(b.x - e.x, b.y - e.y);
+        if (d < b.r + e.r){
+          // 命中
+          e.hp -= b.dmg;
+          b.pierce -= 1;
+
+          // 轻微击退/受击冷却（视觉）
+          e.hitCd = 0.08;
+
+          if (e.hp <= 0){
+            // 死亡
+            kills += 1;
+            dropOrb(e.x, e.y);
+            enemies.splice(ei, 1);
+          }
+
+          if (b.pierce < 0){
+            bullets.splice(bi, 1);
+            break;
+          }
         }
-      } catch (e) {
-        container.innerHTML = "";
-        setTaskError(e?.message || "Failed to load tasks.");
       }
     }
 
-    /***********************
-     * Withdraw button (合规提示)
-     ***********************/
-    function setupWithdraw() {
-      const btn = document.getElementById("withdraw-btn");
-      btn.addEventListener("click", () => {
-        alert(t().withdrawInfo);
-      });
+    // 经验球：吸附到玩家
+    for (let i=orbs.length-1;i>=0;i--){
+      const o = orbs[i];
+      const dx = player.x - o.x, dy = player.y - o.y;
+      const d = Math.hypot(dx, dy);
+
+      // 吸附范围
+      if (d < 220){
+        const pull = (220 - d) / 220;
+        const [nx, ny] = norm(dx, dy);
+        o.x += nx * (120 + pull*360) * dt;
+        o.y += ny * (120 + pull*360) * dt;
+      }
+
+      if (d < player.r + o.r + 6){
+        gainExp(10);
+        orbs.splice(i,1);
+      }
     }
 
-    /***********************
-     * Boot
-     ***********************/
-    (function boot() {
-      // language init
-      const saved = localStorage.getItem(LS_LANG_KEY) || "en";
-      document.getElementById("lang-select").value = saved;
-      applyLang(saved);
+    updateHUD();
+  }
 
-      document.getElementById("lang-select").addEventListener("change", (e) => {
-        applyLang(e.target.value);
-      });
+  function nearestEnemy(){
+    let best = null;
+    let bestD = Infinity;
+    for (const e of enemies){
+      const d = (e.x - player.x)**2 + (e.y - player.y)**2;
+      if (d < bestD){ bestD = d; best = e; }
+    }
+    return best;
+  }
 
-      // bind init
-      document.getElementById("submit-btn").addEventListener("click", initNode);
+  function updateHUD(){
+    hpEl.textContent = Math.ceil(player.hp);
+    hpMaxEl.textContent = Math.ceil(player.hpMax);
+    lvEl.textContent = level;
+    expEl.textContent = Math.floor(exp);
+    expNeedEl.textContent = expNeed;
+    killsEl.textContent = kills;
 
-      // withdraw
-      setupWithdraw();
+    const s = Math.floor((performance.now() - t0)/1000);
+    const mm = Math.floor(s/60);
+    const ss = String(s%60).padStart(2,'0');
+    timeEl.textContent = `${mm}:${ss}`;
+  }
 
-      // auto resume session
-      const session = loadSession();
-      if (session?.token) {
-        showDashboard();
-        syncBalanceOnce().then(() => {
-          startCounterAnimation();
-          loadTasks();
-          setInterval(syncBalanceOnce, 8000);
-        });
-      } else {
-        showAuth();
-      }
-    })();
-  </script>
+  // ====== 绘制 ======
+  function draw(){
+    const cam = camera();
+    ctx.clearRect(0,0,W,H);
 
-  <!--
-    ===============================
-    ✅ 你需要配套的后端 API（必须）
-    ===============================
-    你可以用：Vercel / Cloudflare Workers / Supabase Edge Function / Node Express 等
+    // 背景网格
+    ctx.globalAlpha = 0.18;
+    ctx.lineWidth = 1;
+    for (let x = -(cam.x%60); x < W; x += 60){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    }
+    for (let y = -(cam.y%60); y < H; y += 60){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
 
-    1) POST /api/init-node
-       body: { email, tier, referrer_id }
-       returns: { token, node_id }
+    // 世界边界阴影
+    ctx.globalAlpha = 0.22;
+    ctx.fillRect(-cam.x, -cam.y, world.w, world.h);
+    ctx.globalAlpha = 1;
 
-    2) GET /api/balance
-       headers: Authorization: Bearer <token>
-       returns: { balance }
+    // 经验球
+    for (const o of orbs){
+      const sx = o.x - cam.x, sy = o.y - cam.y;
+      circle(sx, sy, o.r, "rgba(255,255,255,.85)");
+    }
 
-    3) GET /api/tasks
-       headers: Authorization: Bearer <token> (可选)
-       returns: { tasks: [{ task_name, reward, link }] }
+    // 子弹
+    for (const b of bullets){
+      const sx = b.x - cam.x, sy = b.y - cam.y;
+      circle(sx, sy, b.r, "rgba(255,255,255,.92)");
+    }
 
-    ⚠️ 不要再让前端直接写 Supabase 表。
-    ⚠️ RLS 也要开（即便你走后端）。
-  -->
+    // 敌人 + 血条
+    for (const e of enemies){
+      const sx = e.x - cam.x, sy = e.y - cam.y;
+      const a = (e.hitCd > 0) ? 1 : 0.85;
+      circle(sx, sy, e.r, `rgba(255,255,255,${a})`);
+
+      // 血条
+      const w = e.r*1.6, h = 5;
+      const p = clamp(e.hp / e.hpMax, 0, 1);
+      rect(sx-w/2, sy-e.r-12, w, h, "rgba(0,0,0,.35)");
+      rect(sx-w/2, sy-e.r-12, w*p, h, "rgba(255,255,255,.7)");
+    }
+
+    // 玩家（带无敌闪烁）
+    const px = player.x - cam.x, py = player.y - cam.y;
+    const blink = (player.invuln > 0) ? (Math.sin(performance.now()/55)*0.5+0.5) : 1;
+    circle(px, py, player.r, `rgba(255,255,255,${0.85*blink})`);
+
+    // 玩家血条
+    const barW = 220, barH = 10;
+    const hpP = clamp(player.hp / player.hpMax, 0, 1);
+    rect(14, 14, barW, barH, "rgba(0,0,0,.35)");
+    rect(14, 14, barW*hpP, barH, "rgba(255,255,255,.75)");
+
+    // Game Over
+    if (!running){
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = "rgba(255,255,255,.95)";
+      ctx.font = "900 40px system-ui";
+      const t = "游戏结束";
+      ctx.fillText(t, (W-ctx.measureText(t).width)/2, H*0.44);
+
+      ctx.font = "700 18px system-ui";
+      const t2 = `击杀：${kills}  等级：${level}  存活：${timeEl.textContent}`;
+      ctx.fillText(t2, (W-ctx.measureText(t2).width)/2, H*0.52);
+
+      ctx.font = "800 16px system-ui";
+      const t3 = "点击“重新开始”再来一局";
+      ctx.fillText(t3, (W-ctx.measureText(t3).width)/2, H*0.60);
+    }
+
+    // Paused
+    if (running && paused && !overlay.classList.contains('show')){
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(255,255,255,.95)";
+      ctx.font = "900 28px system-ui";
+      const t = "已暂停";
+      ctx.fillText(t, (W-ctx.measureText(t).width)/2, H*0.52);
+    }
+  }
+
+  function circle(x,y,r,fill){
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  function rect(x,y,w,h,fill){
+    ctx.fillStyle = fill;
+    ctx.fillRect(x,y,w,h);
+  }
+
+  // ====== 主循环 ======
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now - last)/1000);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // 启动
+  reset();
+  requestAnimationFrame(loop);
+
+})();
+</script>
 </body>
 </html>
