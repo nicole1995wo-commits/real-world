@@ -2,93 +2,132 @@
 
 import React, { useState } from 'react';
 
-export default function RealPowerLanding() {
+export default function RealPowerElite() {
   const [device, setDevice] = useState('GPU');
 
   return (
     <div style={{
-      backgroundColor: '#050505',
-      color: '#ffffff',
+      backgroundColor: '#000',
+      backgroundImage: 'radial-gradient(circle at 50% -20%, #1a1a1a, #000)',
+      color: '#fff',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'sans-serif',
-      padding: '20px',
-      textAlign: 'center'
+      fontFamily: 'Inter, system-ui, sans-serif',
+      padding: '40px 20px',
     }}>
-      {/* 品牌头部 */}
-      <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '10px', background: 'linear-gradient(to right, #ffffff, #666)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-        REALPOWER
-      </h1>
-      <p style={{ fontSize: '1.2rem', color: '#888', maxWidth: '600px', marginBottom: '40px' }}>
-        The global decentralized AI & Bandwidth network. <br/>
-        Turn your Hardware into Real Cash.
-      </p>
+      {/* 顶部导航装饰 */}
+      <nav style={{ width: '100%', maxWidth: '1200px', display: 'flex', justifyContent: 'space-between', marginBottom: '80px', opacity: 0.8 }}>
+        <div style={{ fontWeight: '900', letterSpacing: '2px' }}>REALPOWER</div>
+        <div style={{ fontSize: '0.8rem', color: '#666' }}>DEPIN & AI PROTOCOL v1.0</div>
+      </nav>
 
-      {/* 招募核心区域 */}
+      {/* 核心宣传语 */}
+      <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+        <h1 style={{ 
+          fontSize: 'clamp(2.5rem, 8vw, 5rem)', 
+          lineHeight: '1.1',
+          fontWeight: '800', 
+          marginBottom: '24px',
+          background: 'linear-gradient(180deg, #FFFFFF 0%, #666666 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          letterSpacing: '-0.04em'
+        }}>
+          Real World. <br/> Real Compute.
+        </h1>
+        <p style={{ fontSize: '1.1rem', color: '#888', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
+          Join the world's most powerful decentralized infrastructure. <br/>
+          Rent your idle hardware to AI labs and earn institutional-grade rewards.
+        </p>
+      </div>
+
+      {/* 玻璃拟态注册框 */}
       <div style={{
-        backgroundColor: '#111',
-        padding: '40px',
-        borderRadius: '20px',
-        border: '1px solid #333',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '32px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '48px',
         width: '100%',
-        maxWidth: '450px',
-        boxShadow: '0 0 50px rgba(255,255,255,0.05)'
+        maxWidth: '500px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
       }}>
-        <h2 style={{ marginBottom: '20px' }}>Join Genesis Node</h2>
-        
-        <input type="email" placeholder="Email Address" style={{
-          width: '100%',
-          padding: '12px',
-          marginBottom: '20px',
-          borderRadius: '8px',
-          border: '1px solid #333',
-          backgroundColor: '#000',
-          color: '#fff',
-          outline: 'none'
-        }} />
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', color: '#555', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '600' }}>IDENTITY</label>
+          <input type="email" placeholder="Email for Genesis Access" style={{
+            width: '100%',
+            padding: '16px',
+            marginBottom: '24px',
+            borderRadius: '12px',
+            border: '1px solid #222',
+            backgroundColor: '#0a0a0a',
+            color: '#fff',
+            fontSize: '1rem'
+          }} />
 
-        <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-          <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '10px' }}>Select Your Device Type:</p>
+          <label style={{ display: 'block', color: '#555', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '600' }}>HARDWARE NODE</label>
           <select 
             value={device} 
             onChange={(e) => setDevice(e.target.value)}
             style={{
               width: '100%',
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid #333',
-              backgroundColor: '#000',
-              color: '#fff'
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #222',
+              backgroundColor: '#0a0a0a',
+              color: '#fff',
+              fontSize: '1rem',
+              appearance: 'none',
+              marginBottom: '32px'
           }}>
-            <option value="GPU">High-End GPU (RTX 30/40/50 Series)</option>
-            <option value="PC">Standard PC (CPU / Laptop)</option>
-            <option value="Mobile">Smartphone (Android / iOS)</option>
+            <option value="GPU">Tier 1: High-End GPU (RTX 40/50 Series)</option>
+            <option value="PC">Tier 2: Standard Compute (CPU/Laptop)</option>
+            <option value="Mobile">Tier 3: Edge Node (Smartphone/Bandwidth)</option>
           </select>
         </div>
 
         <button style={{
           width: '100%',
-          padding: '15px',
-          borderRadius: '8px',
+          padding: '18px',
+          borderRadius: '14px',
           border: 'none',
           backgroundColor: '#fff',
           color: '#000',
-          fontWeight: 'bold',
+          fontWeight: '700',
           cursor: 'pointer',
-          fontSize: '1rem'
+          fontSize: '1.1rem',
+          transition: 'all 0.2s',
+          boxShadow: '0 0 20px rgba(255,255,255,0.2)'
         }}>
-          Register & Start Earning
+          Initialize Node
         </button>
       </div>
 
-      {/* 实时状态统计 */}
-      <div style={{ marginTop: '50px', display: 'flex', gap: '30px', color: '#555', fontSize: '0.8rem' }}>
-        <div>GLOBAL NODES: <span style={{color: '#fff'}}>1,248</span></div>
-        <div>TOTAL HASHRATE: <span style={{color: '#fff'}}>82.4 PFLOPS</span></div>
-        <div>PAYOUTS: <span style={{color: '#fff'}}>$0.00</span></div>
+      {/* 底部数据流 - 极简高级感 */}
+      <div style={{ 
+        marginTop: 'auto', 
+        paddingTop: '80px',
+        display: 'flex', 
+        gap: '40px', 
+        borderTop: '1px solid #111',
+        width: '100%',
+        maxWidth: '800px',
+        justifyContent: 'center'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 'bold' }}>1,248</div>
+          <div style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '1px' }}>ACTIVE NODES</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 'bold' }}>82.4 PF</div>
+          <div style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '1px' }}>NETWORK POWER</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ color: '#00ffaa', fontSize: '1.2rem', fontWeight: 'bold' }}>ONLINE</div>
+          <div style={{ color: '#444', fontSize: '0.7rem', letterSpacing: '1px' }}>STATUS</div>
+        </div>
       </div>
     </div>
   );
