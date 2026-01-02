@@ -1,161 +1,840 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RealPower | Decentralized Compute Network</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #000; color: #fff; margin: 0; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(40px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .grad-text { background: linear-gradient(180deg, #FFFFFF 30%, #666 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .neon-border { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); border: 1px solid rgba(59, 130, 246, 0.4); }
-        input, select { background: #080808 !important; border: 1px solid #1a1a1a !important; color: white !important; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RealPower | Decentralized Compute Network</title>
+
+  <!-- Tailwind (CDN for demo; production: build pipeline) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <!--
+    ✅ “完美版本”的核心改变：
+    1) 不在前端暴露 Supabase URL/AnonKey
+    2) 前端不直接写 Supabase 表（改为调用你自己的后端 API）
+    3) 语言切换可记忆 + 14 语完整回退
+    4) 收益数字展示用动画，但真实数值来自后端（不会被一眼看穿“假增长”）
+    5) 任务渲染做 XSS 防护（不直接 innerHTML 注入用户可控字段）
+    6) 更严格表单校验 + 防重复点击 + 友好错误
+    7) 提现按钮合规提示（避免“可提现承诺”风险）
+  -->
+
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #000;
+      color: #fff;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .grad-text {
+      background: linear-gradient(180deg, #FFFFFF 30%, #666 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .neon-border {
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    input, select {
+      background: #080808 !important;
+      border: 1px solid #1a1a1a !important;
+      color: white !important;
+    }
+    .shake { animation: shake 0.25s linear 0s 2; }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      50% { transform: translateX(6px); }
+      75% { transform: translateX(-4px); }
+      100% { transform: translateX(0); }
+    }
+  </style>
 </head>
+
 <body class="min-h-screen flex flex-col items-center">
-    <nav class="w-full max-w-7xl p-6 flex justify-between items-center z-50">
-        <div class="font-extrabold text-2xl tracking-tighter italic">REALPOWER</div>
-        <select id="lang-select" onchange="applyLang(this.value)" class="bg-black border border-zinc-800 text-[10px] px-3 py-1 rounded-full text-zinc-400 outline-none">
-            <option value="en">English</option><option value="zh">简体中文</option><option value="tw">繁體中文</option>
-            <option value="jp">日本語</option><option value="kr">한국어</option><option value="ru">Русский</option>
-            <option value="ar">العربية</option><option value="vn">Tiếng Việt</option><option value="th">ภาษาไทย</option>
-            <option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option>
-            <option value="pt">Português</option><option value="tr">Türkçe</option>
-        </select>
-    </nav>
+  <nav class="w-full max-w-7xl p-6 flex justify-between items-center z-50">
+    <div class="font-extrabold text-2xl tracking-tighter italic">REALPOWER</div>
 
-    <main class="flex-1 flex flex-col items-center justify-center w-full max-w-[480px] px-6 pb-20 relative">
-        <div class="absolute w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[100px] -z-10 top-20"></div>
+    <select id="lang-select"
+            class="bg-black border border-zinc-800 text-[10px] px-3 py-1 rounded-full text-zinc-400 outline-none"
+            aria-label="Language"
+    >
+      <option value="en">English</option>
+      <option value="zh">简体中文</option>
+      <option value="tw">繁體中文</option>
+      <option value="jp">日本語</option>
+      <option value="kr">한국어</option>
+      <option value="ru">Русский</option>
+      <option value="ar">العربية</option>
+      <option value="vn">Tiếng Việt</option>
+      <option value="th">ภาษาไทย</option>
+      <option value="de">Deutsch</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+      <option value="tr">Türkçe</option>
+    </select>
+  </nav>
 
-        <div id="auth-ui" class="w-full text-center">
-            <h1 id="t-title" class="text-[52px] font-extrabold leading-[1.1] mb-6 grad-text tracking-tighter">Real Compute.<br>Real Profit.</h1>
-            <p id="t-desc" class="text-zinc-500 text-sm mb-10 px-4 leading-relaxed">Join the global DePIN network. Rent your CPU/GPU power and earn real-time rewards.</p>
-            
-            <div class="glass p-8 rounded-[40px] space-y-6 shadow-2xl">
-                <div class="text-left">
-                    <label id="l-email" class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">Account identity</label>
-                    <input type="email" id="user-email" placeholder="node@provider.io" class="w-full p-4 rounded-2xl outline-none text-lg">
-                </div>
-                <div class="text-left">
-                    <label id="l-node" class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">Hardware Tier</label>
-                    <select id="user-tier" class="w-full p-4 rounded-2xl outline-none cursor-pointer appearance-none">
-                        <option value="T1-Enterprise">Tier 1: Enterprise GPU</option>
-                        <option value="T2-Standard">Tier 2: Standard PC</option>
-                        <option value="T3-Mobile">Tier 3: Mobile Edge</option>
-                    </select>
-                </div>
-                <button onclick="handleInit()" id="submit-btn" class="w-full py-5 bg-white text-black font-black rounded-2xl hover:bg-zinc-200 transition text-xl shadow-xl shadow-white/5">
-                    <span id="t-btn">Initialize Node</span>
-                </button>
-            </div>
-            <p class="mt-8 text-[9px] text-zinc-700 tracking-widest uppercase font-bold" id="t-ref-status">Direct Mainnet Connection</p>
+  <main class="flex-1 flex flex-col items-center justify-center w-full max-w-[480px] px-6 pb-20 relative">
+    <div class="absolute w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[100px] -z-10 top-20"></div>
+
+    <!-- AUTH UI -->
+    <div id="auth-ui" class="w-full text-center">
+      <h1 id="t-title" class="text-[52px] font-extrabold leading-[1.1] mb-6 grad-text tracking-tighter">
+        Real Compute.<br>Real Profit.
+      </h1>
+      <p id="t-desc" class="text-zinc-500 text-sm mb-10 px-4 leading-relaxed">
+        Join the global DePIN network. Rent your CPU/GPU power and earn real-time rewards.
+      </p>
+
+      <div class="glass p-8 rounded-[40px] space-y-6 shadow-2xl">
+        <div class="text-left">
+          <label id="l-email"
+                 class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">
+            Account identity
+          </label>
+          <input type="email" id="user-email" placeholder="node@provider.io"
+                 class="w-full p-4 rounded-2xl outline-none text-lg"
+                 autocomplete="email" inputmode="email" />
+          <p id="email-hint" class="mt-2 text-[10px] text-zinc-600 hidden"></p>
         </div>
 
-        <div id="dash-ui" class="hidden w-full space-y-6">
-            <div class="glass p-8 rounded-[48px] text-center relative overflow-hidden neon-border">
-                <div class="flex justify-between items-center mb-8">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <div id="t-status" class="text-[10px] font-black text-green-500 uppercase tracking-widest">Node Online</div>
-                    </div>
-                    <button onclick="alert('Threshold: 100 WIR')" class="text-[9px] text-zinc-500 border border-zinc-800 px-3 py-1 rounded-full hover:bg-white hover:text-black">WITHDRAW</button>
-                </div>
-                <div class="py-6">
-                    <div id="l-revenue" class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-2">Network Earnings</div>
-                    <div class="text-7xl font-bold tracking-tighter grad-text" id="profit-counter">0.000000</div>
-                    <div class="text-[10px] text-zinc-600 tracking-[0.5em] mt-4 font-black uppercase tracking-tighter">WIR Tokens</div>
-                </div>
-            </div>
-
-            <div class="glass p-6 rounded-[32px] space-y-4">
-                <div class="flex justify-between items-center px-2 border-b border-white/5 pb-4">
-                    <label id="l-tasks" class="text-[10px] text-zinc-600 font-black tracking-widest uppercase">Profit Stream (Tasks)</label>
-                    <div class="text-[9px] text-blue-500 font-bold animate-pulse">REVENUE LIVE</div>
-                </div>
-                <div id="task-list" class="space-y-3">
-                    <div class="text-[10px] text-zinc-800 italic py-4 text-center">Syncing available task pools...</div>
-                </div>
-            </div>
+        <div class="text-left">
+          <label id="l-node"
+                 class="text-[10px] text-zinc-600 font-black tracking-widest mb-3 block uppercase">
+            Hardware Tier
+          </label>
+          <select id="user-tier" class="w-full p-4 rounded-2xl outline-none cursor-pointer appearance-none">
+            <option value="T1-Enterprise">Tier 1: Enterprise GPU</option>
+            <option value="T2-Standard">Tier 2: Standard PC</option>
+            <option value="T3-Mobile">Tier 3: Mobile Edge</option>
+          </select>
+          <p id="tier-hint" class="mt-2 text-[10px] text-zinc-600 hidden"></p>
         </div>
-    </main>
 
-    <script>
-        // 配置
-        const SUPABASE_URL = 'https://axcayrzxxvkneipjcreu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Y2F5cnp4eHZrbmVpcGpjcmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMTE4NzAsImV4cCI6MjA4MTc4Nzg3MH0.9aaU6irsY5GqHeeCOSb7uUOHhEZRBGPXSPPto68gpZM';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        let balance = 0;
-        const params = new URLSearchParams(window.location.search);
-        const referrerId = params.get('ref') || 'Official_Root';
+        <button id="submit-btn"
+                class="w-full py-5 bg-white text-black font-black rounded-2xl hover:bg-zinc-200 transition text-xl shadow-xl shadow-white/5 disabled:opacity-60 disabled:cursor-not-allowed">
+          <span id="t-btn">Initialize Node</span>
+        </button>
 
-        // 14 种语言包
-        const i18n = {
-            en: { title: "Real Compute.<br>Real Profit.", desc: "Rent hardware. Start earning.", email: "Account Identity", node: "Hardware Tier", btn: "Initialize Node", status: "Node Online", revenue: "Network Earnings", tasks: "Profit Stream (Tasks)" },
-            zh: { title: "真实算力。<br>真实收益。", desc: "出租硬件资源，立即获得收益。", email: "身份认证与收款", node: "硬件等级", btn: "初始化节点", status: "节点已上线", revenue: "网络累计收益", tasks: "实时赚钱任务" },
-            tw: { title: "真實算力。<br>真實收益。", desc: "出租硬件資源，立即獲得收益。", email: "身份認證與收款", node: "硬件等級", btn: "初始化節點", status: "節點已上線", revenue: "網絡累計收益", tasks: "實時賺錢任務" },
-            jp: { title: "リアル演算。<br>リアル利益。", desc: "ハードウェアを貸し出す。収益を開始。", email: "アカウントID", node: "ハードウェア層", btn: "ノードを初期化", status: "オンライン", revenue: "ネットワーク収益", tasks: "収益タスク" }
-            // 其他 10 种语言在此逻辑中切换...
-        };
+        <div id="auth-error" class="hidden text-left text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4"></div>
+      </div>
 
-        function applyLang(l) {
-            const t = i18n[l] || i18n.en;
-            document.getElementById('t-title').innerHTML = t.title;
-            document.getElementById('t-desc').innerText = t.desc;
-            document.getElementById('l-email').innerText = t.email;
-            document.getElementById('l-node').innerText = t.node;
-            document.getElementById('t-btn').innerText = t.btn;
-            document.getElementById('t-status').innerText = t.status;
-            document.getElementById('l-revenue').innerText = t.revenue;
-            document.getElementById('l-tasks').innerText = t.tasks;
+      <p class="mt-8 text-[9px] text-zinc-700 tracking-widest uppercase font-bold" id="t-ref-status">
+        Direct Mainnet Connection
+      </p>
+    </div>
+
+    <!-- DASH UI -->
+    <div id="dash-ui" class="hidden w-full space-y-6">
+      <div class="glass p-8 rounded-[48px] text-center relative overflow-hidden neon-border">
+        <div class="flex justify-between items-center mb-8">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div id="t-status" class="text-[10px] font-black text-green-500 uppercase tracking-widest">
+              Node Online
+            </div>
+          </div>
+
+          <button id="withdraw-btn"
+                  class="text-[9px] text-zinc-500 border border-zinc-800 px-3 py-1 rounded-full hover:bg-white hover:text-black">
+            WITHDRAW
+          </button>
+        </div>
+
+        <div class="py-6">
+          <div id="l-revenue" class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-2">
+            Network Earnings
+          </div>
+
+          <div class="text-7xl font-bold tracking-tighter grad-text" id="profit-counter">0.000000</div>
+
+          <div class="text-[10px] text-zinc-600 tracking-[0.5em] mt-4 font-black uppercase tracking-tighter">
+            WIR Tokens
+          </div>
+
+          <div id="dash-note" class="mt-6 text-[10px] text-zinc-600">
+            <!-- filled by i18n -->
+          </div>
+        </div>
+      </div>
+
+      <div class="glass p-6 rounded-[32px] space-y-4">
+        <div class="flex justify-between items-center px-2 border-b border-white/5 pb-4">
+          <label id="l-tasks" class="text-[10px] text-zinc-600 font-black tracking-widest uppercase">
+            Profit Stream (Tasks)
+          </label>
+          <div class="text-[9px] text-blue-500 font-bold animate-pulse" id="t-live">
+            REVENUE LIVE
+          </div>
+        </div>
+
+        <div id="task-list" class="space-y-3">
+          <div class="text-[10px] text-zinc-800 italic py-4 text-center" id="t-task-loading">
+            Syncing available task pools...
+          </div>
+        </div>
+
+        <div id="task-error" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /***********************
+     * CONFIG (NO KEYS HERE)
+     ***********************/
+    const API_BASE = ""; // same origin. If your API is another domain: "https://api.yourdomain.com"
+    const LS_LANG_KEY = "realpower_lang";
+    const LS_SESSION_KEY = "realpower_session";
+    const REF_PARAM = "ref";
+
+    /***********************
+     * I18N (14 languages, full fallback)
+     ***********************/
+    const i18n = {
+      en: {
+        title: "Real Compute.<br>Real Profit.",
+        desc: "Rent hardware. Start earning.",
+        email: "Account Identity",
+        node: "Hardware Tier",
+        btn: "Initialize Node",
+        status: "Node Online",
+        revenue: "Network Earnings",
+        tasks: "Profit Stream (Tasks)",
+        live: "REVENUE LIVE",
+        taskLoading: "Syncing available task pools...",
+        withdraw: "WITHDRAW",
+        withdrawInfo: "Claim opens soon. Rewards currently have no monetary value.",
+        dashNote: "Balance updates are synced from the network ledger.",
+        errInvalidEmail: "Please enter a valid email address.",
+        errBusy: "Processing... please wait.",
+        errGeneric: "Something went wrong. Please try again."
+      },
+      zh: {
+        title: "真实算力。<br>真实收益。",
+        desc: "出租硬件资源，立即获得收益。",
+        email: "身份认证与收款",
+        node: "硬件等级",
+        btn: "初始化节点",
+        status: "节点已上线",
+        revenue: "网络累计收益",
+        tasks: "实时赚钱任务",
+        live: "收益实时同步",
+        taskLoading: "正在同步可用任务池…",
+        withdraw: "提现",
+        withdrawInfo: "即将开放领取。当前奖励不具备法币价值。",
+        dashNote: "收益从网络账本同步更新。",
+        errInvalidEmail: "请输入有效的邮箱地址。",
+        errBusy: "处理中…请稍候。",
+        errGeneric: "出现错误，请稍后重试。"
+      },
+      tw: {
+        title: "真實算力。<br>真實收益。",
+        desc: "出租硬體資源，立即獲得收益。",
+        email: "身份認證與收款",
+        node: "硬體等級",
+        btn: "初始化節點",
+        status: "節點已上線",
+        revenue: "網路累計收益",
+        tasks: "即時賺錢任務",
+        live: "收益即時同步",
+        taskLoading: "正在同步可用任務池…",
+        withdraw: "提領",
+        withdrawInfo: "即將開放領取。當前獎勵不具備法幣價值。",
+        dashNote: "收益從網路帳本同步更新。",
+        errInvalidEmail: "請輸入有效的電子郵件。",
+        errBusy: "處理中…請稍候。",
+        errGeneric: "發生錯誤，請稍後再試。"
+      },
+      jp: {
+        title: "リアル演算。<br>リアル利益。",
+        desc: "ハードウェアを貸し出す。収益を開始。",
+        email: "アカウントID",
+        node: "ハードウェア層",
+        btn: "ノードを初期化",
+        status: "オンライン",
+        revenue: "ネットワーク収益",
+        tasks: "収益タスク",
+        live: "収益同期中",
+        taskLoading: "タスクプールを同期中…",
+        withdraw: "出金",
+        withdrawInfo: "近日公開。現在の報酬は金銭的価値を持ちません。",
+        dashNote: "残高は台帳から同期更新されます。",
+        errInvalidEmail: "有効なメールアドレスを入力してください。",
+        errBusy: "処理中…お待ちください。",
+        errGeneric: "エラーが発生しました。もう一度お試しください。"
+      },
+      kr: {
+        title: "리얼 컴퓨팅.<br>리얼 수익.",
+        desc: "하드웨어를 대여하고 수익을 시작하세요.",
+        email: "계정 식별",
+        node: "하드웨어 등급",
+        btn: "노드 초기화",
+        status: "노드 온라인",
+        revenue: "네트워크 수익",
+        tasks: "수익 작업",
+        live: "실시간 수익",
+        taskLoading: "작업 풀 동기화 중…",
+        withdraw: "출금",
+        withdrawInfo: "곧 오픈됩니다. 현재 보상은 금전적 가치가 없습니다.",
+        dashNote: "잔액은 네트워크 원장에서 동기화됩니다.",
+        errInvalidEmail: "유효한 이메일을 입력하세요.",
+        errBusy: "처리 중…잠시만요.",
+        errGeneric: "문제가 발생했습니다. 다시 시도하세요."
+      },
+      ru: {
+        title: "Реальные вычисления.<br>Реальная прибыль.",
+        desc: "Сдавайте оборудование в аренду. Начните зарабатывать.",
+        email: "Идентификатор аккаунта",
+        node: "Уровень оборудования",
+        btn: "Инициализировать ноду",
+        status: "Нода онлайн",
+        revenue: "Доход сети",
+        tasks: "Поток задач",
+        live: "ДОХОД В РЕАЛЬНОМ ВРЕМЕНИ",
+        taskLoading: "Синхронизация пулов задач…",
+        withdraw: "ВЫВОД",
+        withdrawInfo: "Скоро. Текущие награды не имеют денежной ценности.",
+        dashNote: "Баланс синхронизируется из реестра сети.",
+        errInvalidEmail: "Введите корректный email.",
+        errBusy: "Обработка… подождите.",
+        errGeneric: "Ошибка. Попробуйте ещё раз."
+      },
+      ar: {
+        title: "حوسبة حقيقية.<br>ربح حقيقي.",
+        desc: "قم بتأجير العتاد وابدأ بالربح.",
+        email: "هوية الحساب",
+        node: "فئة العتاد",
+        btn: "تهيئة العقدة",
+        status: "العقدة متصلة",
+        revenue: "أرباح الشبكة",
+        tasks: "مهام الربح",
+        live: "الأرباح مباشرة",
+        taskLoading: "جارٍ مزامنة المهام…",
+        withdraw: "سحب",
+        withdrawInfo: "قريباً. المكافآت الحالية ليست ذات قيمة نقدية.",
+        dashNote: "يتم تحديث الرصيد من دفتر الشبكة.",
+        errInvalidEmail: "يرجى إدخال بريد إلكتروني صحيح.",
+        errBusy: "جارٍ المعالجة…",
+        errGeneric: "حدث خطأ. حاول مرة أخرى."
+      },
+      vn: {
+        title: "Tính toán thật.<br>Lợi nhuận thật.",
+        desc: "Cho thuê phần cứng. Bắt đầu kiếm tiền.",
+        email: "Định danh tài khoản",
+        node: "Cấp phần cứng",
+        btn: "Khởi tạo node",
+        status: "Node Online",
+        revenue: "Thu nhập mạng",
+        tasks: "Luồng nhiệm vụ",
+        live: "DOANH THU TRỰC TIẾP",
+        taskLoading: "Đang đồng bộ pool nhiệm vụ…",
+        withdraw: "RÚT",
+        withdrawInfo: "Sắp mở. Phần thưởng hiện tại không có giá trị tiền tệ.",
+        dashNote: "Số dư được đồng bộ từ sổ cái mạng.",
+        errInvalidEmail: "Vui lòng nhập email hợp lệ.",
+        errBusy: "Đang xử lý… vui lòng đợi.",
+        errGeneric: "Có lỗi xảy ra. Thử lại."
+      },
+      th: {
+        title: "คอมพิวต์จริง<br>กำไรจริง",
+        desc: "ให้เช่าฮาร์ดแวร์ เริ่มรับรายได้",
+        email: "ตัวตนบัญชี",
+        node: "ระดับฮาร์ดแวร์",
+        btn: "เริ่มต้นโหนด",
+        status: "โหนดออนไลน์",
+        revenue: "รายได้เครือข่าย",
+        tasks: "งานสร้างรายได้",
+        live: "รายได้สด",
+        taskLoading: "กำลังซิงก์งาน…",
+        withdraw: "ถอน",
+        withdrawInfo: "เร็ว ๆ นี้ รางวัลปัจจุบันไม่มีมูลค่าเป็นเงิน",
+        dashNote: "ยอดคงเหลือซิงก์จากเลดเจอร์เครือข่าย",
+        errInvalidEmail: "กรุณาใส่อีเมลที่ถูกต้อง",
+        errBusy: "กำลังประมวลผล…",
+        errGeneric: "เกิดข้อผิดพลาด ลองใหม่"
+      },
+      de: {
+        title: "Echte Rechenleistung.<br>Echter Profit.",
+        desc: "Hardware vermieten. Verdienen starten.",
+        email: "Account-Identität",
+        node: "Hardware-Stufe",
+        btn: "Node initialisieren",
+        status: "Node online",
+        revenue: "Netzwerk-Einnahmen",
+        tasks: "Aufgaben-Stream",
+        live: "EINNAHMEN LIVE",
+        taskLoading: "Aufgabenpools werden synchronisiert…",
+        withdraw: "AUSZAHLEN",
+        withdrawInfo: "Bald verfügbar. Aktuelle Rewards haben keinen Geldwert.",
+        dashNote: "Balance wird aus dem Ledger synchronisiert.",
+        errInvalidEmail: "Bitte eine gültige E-Mail eingeben.",
+        errBusy: "Wird verarbeitet…",
+        errGeneric: "Fehler. Bitte erneut versuchen."
+      },
+      fr: {
+        title: "Calcul réel.<br>Profit réel.",
+        desc: "Louez votre matériel. Commencez à gagner.",
+        email: "Identité du compte",
+        node: "Niveau matériel",
+        btn: "Initialiser le nœud",
+        status: "Nœud en ligne",
+        revenue: "Gains du réseau",
+        tasks: "Flux de tâches",
+        live: "GAINS EN DIRECT",
+        taskLoading: "Synchronisation des tâches…",
+        withdraw: "RETIRER",
+        withdrawInfo: "Bientôt. Les récompenses n’ont pas de valeur monétaire.",
+        dashNote: "Le solde est synchronisé depuis le registre.",
+        errInvalidEmail: "Veuillez entrer un e-mail valide.",
+        errBusy: "Traitement…",
+        errGeneric: "Une erreur est survenue. Réessayez."
+      },
+      es: {
+        title: "Cómputo real.<br>Ganancia real.",
+        desc: "Alquila tu hardware. Empieza a ganar.",
+        email: "Identidad de cuenta",
+        node: "Nivel de hardware",
+        btn: "Inicializar nodo",
+        status: "Nodo en línea",
+        revenue: "Ganancias de la red",
+        tasks: "Flujo de tareas",
+        live: "GANANCIAS EN VIVO",
+        taskLoading: "Sincronizando tareas…",
+        withdraw: "RETIRAR",
+        withdrawInfo: "Próximamente. Las recompensas actuales no tienen valor monetario.",
+        dashNote: "El saldo se sincroniza desde el libro mayor.",
+        errInvalidEmail: "Introduce un correo válido.",
+        errBusy: "Procesando…",
+        errGeneric: "Ocurrió un error. Intenta de nuevo."
+      },
+      pt: {
+        title: "Cálculo real.<br>Lucro real.",
+        desc: "Alugue hardware. Comece a ganhar.",
+        email: "Identidade da conta",
+        node: "Nível de hardware",
+        btn: "Inicializar nó",
+        status: "Nó online",
+        revenue: "Ganhos da rede",
+        tasks: "Fluxo de tarefas",
+        live: "GANHOS AO VIVO",
+        taskLoading: "Sincronizando tarefas…",
+        withdraw: "SACAR",
+        withdrawInfo: "Em breve. Recompensas atuais não têm valor monetário.",
+        dashNote: "Saldo sincronizado do ledger.",
+        errInvalidEmail: "Insira um e-mail válido.",
+        errBusy: "Processando…",
+        errGeneric: "Algo deu errado. Tente novamente."
+      },
+      tr: {
+        title: "Gerçek Hesaplama.<br>Gerçek Kâr.",
+        desc: "Donanım kiralayın. Kazanmaya başlayın.",
+        email: "Hesap kimliği",
+        node: "Donanım seviyesi",
+        btn: "Düğümü başlat",
+        status: "Düğüm çevrimiçi",
+        revenue: "Ağ kazançları",
+        tasks: "Görev akışı",
+        live: "KAZANÇ CANLI",
+        taskLoading: "Görev havuzları senkronize ediliyor…",
+        withdraw: "ÇEK",
+        withdrawInfo: "Yakında. Mevcut ödüllerin parasal değeri yoktur.",
+        dashNote: "Bakiye defterden senkronize edilir.",
+        errInvalidEmail: "Geçerli bir e-posta girin.",
+        errBusy: "İşleniyor…",
+        errGeneric: "Bir hata oluştu. Tekrar deneyin."
+      }
+    };
+
+    function getLang() {
+      const saved = localStorage.getItem(LS_LANG_KEY);
+      const select = document.getElementById("lang-select").value;
+      return saved || select || "en";
+    }
+
+    function t() {
+      const lang = getLang();
+      return i18n[lang] || i18n.en;
+    }
+
+    function applyLang(lang) {
+      localStorage.setItem(LS_LANG_KEY, lang);
+
+      // RTL support for Arabic
+      if (lang === "ar") {
+        document.documentElement.dir = "rtl";
+      } else {
+        document.documentElement.dir = "ltr";
+      }
+
+      const pack = i18n[lang] || i18n.en;
+      document.getElementById("t-title").innerHTML = pack.title;
+      document.getElementById("t-desc").innerText = pack.desc;
+      document.getElementById("l-email").innerText = pack.email;
+      document.getElementById("l-node").innerText = pack.node;
+      document.getElementById("t-btn").innerText = pack.btn;
+      document.getElementById("t-status").innerText = pack.status;
+      document.getElementById("l-revenue").innerText = pack.revenue;
+      document.getElementById("l-tasks").innerText = pack.tasks;
+      document.getElementById("t-live").innerText = pack.live;
+      document.getElementById("t-task-loading").innerText = pack.taskLoading;
+      document.getElementById("withdraw-btn").innerText = pack.withdraw;
+      document.getElementById("dash-note").innerText = pack.dashNote;
+    }
+
+    /***********************
+     * Helpers (安全渲染 / 校验 / UI)
+     ***********************/
+    function qs(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    function normalizeRef(ref) {
+      // 只允许安全字符，避免注入、脏数据
+      if (!ref) return "Official_Root";
+      const cleaned = String(ref).trim().slice(0, 64).replace(/[^a-zA-Z0-9_\-]/g, "");
+      return cleaned || "Official_Root";
+    }
+
+    function isValidEmail(email) {
+      // 简洁但靠谱的 email 校验
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email).trim());
+    }
+
+    function setError(msg) {
+      const box = document.getElementById("auth-error");
+      box.classList.remove("hidden");
+      box.textContent = msg;
+      box.classList.add("shake");
+      setTimeout(() => box.classList.remove("shake"), 400);
+    }
+
+    function clearError() {
+      const box = document.getElementById("auth-error");
+      box.classList.add("hidden");
+      box.textContent = "";
+    }
+
+    function setTaskError(msg) {
+      const box = document.getElementById("task-error");
+      box.classList.remove("hidden");
+      box.textContent = msg;
+    }
+
+    function clearTaskError() {
+      const box = document.getElementById("task-error");
+      box.classList.add("hidden");
+      box.textContent = "";
+    }
+
+    async function api(path, { method = "GET", body } = {}) {
+      const headers = { "Content-Type": "application/json" };
+      const session = loadSession();
+      if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+      const res = await fetch(API_BASE + path, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        credentials: "same-origin"
+      });
+
+      // 统一错误
+      const text = await res.text();
+      let json;
+      try { json = text ? JSON.parse(text) : {}; } catch { json = { message: text || "Invalid response" }; }
+
+      if (!res.ok) {
+        const msg = json?.message || `${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+      return json;
+    }
+
+    function saveSession(session) {
+      localStorage.setItem(LS_SESSION_KEY, JSON.stringify(session));
+    }
+    function loadSession() {
+      try { return JSON.parse(localStorage.getItem(LS_SESSION_KEY) || "null"); }
+      catch { return null; }
+    }
+    function clearSession() {
+      localStorage.removeItem(LS_SESSION_KEY);
+    }
+
+    function showDashboard() {
+      document.getElementById("auth-ui").style.display = "none";
+      document.getElementById("dash-ui").style.display = "block";
+    }
+
+    function showAuth() {
+      document.getElementById("auth-ui").style.display = "block";
+      document.getElementById("dash-ui").style.display = "none";
+    }
+
+    /***********************
+     * Profit counter (动画显示，但数值来自后端)
+     ***********************/
+    let counterRAF = null;
+    let currentDisplay = 0;
+    let targetDisplay = 0;
+
+    function startCounterAnimation() {
+      if (counterRAF) cancelAnimationFrame(counterRAF);
+
+      const el = document.getElementById("profit-counter");
+      const step = () => {
+        // 平滑追随目标值
+        const diff = targetDisplay - currentDisplay;
+        currentDisplay += diff * 0.12; // 追随速度
+        if (Math.abs(diff) < 0.000001) currentDisplay = targetDisplay;
+
+        el.textContent = Number(currentDisplay).toFixed(6);
+
+        counterRAF = requestAnimationFrame(step);
+      };
+      counterRAF = requestAnimationFrame(step);
+    }
+
+    /***********************
+     * Tasks rendering (XSS safe)
+     ***********************/
+    function createTaskRow(task) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition duration-500";
+
+      const left = document.createElement("div");
+      left.className = "text-left";
+
+      const name = document.createElement("div");
+      name.className = "text-[11px] font-bold text-white tracking-tight";
+      name.textContent = task.task_name ?? "Task";
+
+      const reward = document.createElement("div");
+      reward.className = "text-[9px] text-green-500 font-black";
+      const r = Number(task.reward || 0);
+      reward.textContent = `+${r.toFixed(2)} WIR BOOST`;
+
+      left.appendChild(name);
+      left.appendChild(reward);
+
+      const btn = document.createElement("button");
+      btn.className = "px-5 py-2 bg-white text-black text-[10px] font-black rounded-xl hover:bg-blue-500 hover:text-white transition";
+      btn.textContent = "EARN";
+      btn.type = "button";
+
+      // 安全打开链接：只允许 http(s)
+      btn.addEventListener("click", () => {
+        const url = String(task.link || "");
+        if (!/^https?:\/\//i.test(url)) return;
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+
+      wrapper.appendChild(left);
+      wrapper.appendChild(btn);
+      return wrapper;
+    }
+
+    /***********************
+     * Main flow
+     ***********************/
+    let busy = false;
+    const referrerId = normalizeRef(qs(REF_PARAM));
+
+    async function initNode() {
+      if (busy) return;
+
+      clearError();
+
+      const email = document.getElementById("user-email").value.trim();
+      const tier = document.getElementById("user-tier").value;
+
+      if (!isValidEmail(email)) {
+        setError(t().errInvalidEmail);
+        return;
+      }
+
+      busy = true;
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true;
+      btn.querySelector("span").textContent = t().errBusy;
+
+      try {
+        /**
+         * ✅ 后端必须做的事（你 API 里做）：
+         * - 校验 email / tier / referrerId
+         * - 防刷限频（IP、email hash、设备指纹可选）
+         * - 写入数据库 miners（或你自己的表）
+         * - 返回 session token（或 node_id + token）
+         *
+         * 这里调用你的后端：
+         */
+        const session = await api("/api/init-node", {
+          method: "POST",
+          body: { email, tier, referrer_id: referrerId }
+        });
+
+        // 示例返回结构：{ token, node_id }
+        saveSession(session);
+
+        showDashboard();
+
+        // 拉一次余额 & 任务
+        await Promise.all([
+          syncBalanceOnce(),
+          loadTasks()
+        ]);
+
+        // 开始余额动画
+        startCounterAnimation();
+
+        // 每 8 秒同步一次（节制请求）
+        setInterval(syncBalanceOnce, 8000);
+
+      } catch (e) {
+        setError(e?.message || t().errGeneric);
+        btn.disabled = false;
+        btn.querySelector("span").textContent = t().btn;
+        busy = false;
+        return;
+      }
+
+      // done
+      btn.disabled = false;
+      btn.querySelector("span").textContent = t().btn;
+      busy = false;
+    }
+
+    async function syncBalanceOnce() {
+      const session = loadSession();
+      if (!session?.token) return;
+
+      try {
+        // 你的后端返回：{ balance: number }
+        const data = await api("/api/balance", { method: "GET" });
+        const b = Number(data.balance || 0);
+        targetDisplay = b;
+      } catch (e) {
+        // 不强打断 UI，只轻提示
+        // console.warn(e);
+      }
+    }
+
+    async function loadTasks() {
+      clearTaskError();
+      const container = document.getElementById("task-list");
+      container.innerHTML = "";
+
+      const loading = document.createElement("div");
+      loading.className = "text-[10px] text-zinc-800 italic py-4 text-center";
+      loading.textContent = t().taskLoading;
+      container.appendChild(loading);
+
+      try {
+        /**
+         * ✅ 后端必须做的事：
+         * - tasks 只读输出（不要让前端直接 select supabase）
+         * - 对 link 做白名单或协议限制
+         * 返回：{ tasks: [{task_name, reward, link}, ...] }
+         */
+        const data = await api("/api/tasks", { method: "GET" });
+        const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+
+        container.innerHTML = "";
+        if (!tasks.length) {
+          const empty = document.createElement("div");
+          empty.className = "text-[10px] text-zinc-700 italic py-4 text-center";
+          empty.textContent = "No tasks available right now.";
+          container.appendChild(empty);
+          return;
         }
 
-        async function handleInit() {
-            const email = document.getElementById('user-email').value;
-            const tier = document.getElementById('user-tier').value;
-            if (!email.includes('@')) return alert("Enter valid email");
-            
-            try {
-                // 存入并记录代理 ID
-                await _supabase.from('miners').insert([{ 
-                    email: email, 
-                    tier: tier, 
-                    referrer_id: referrerId,
-                    status: 'online' 
-                }]);
-                
-                document.getElementById('auth-ui').style.display = 'none';
-                document.getElementById('dash-ui').style.display = 'block';
-                
-                // 开始虚拟算力增长（留人钩子）
-                setInterval(() => { 
-                    balance += 0.00003142; 
-                    document.getElementById('profit-counter').innerText = balance.toFixed(6); 
-                }, 100);
-                
-                // 加载盈利任务
-                loadMarketTasks();
-            } catch (err) { alert(err.message); }
+        for (const task of tasks) {
+          container.appendChild(createTaskRow(task));
         }
+      } catch (e) {
+        container.innerHTML = "";
+        setTaskError(e?.message || "Failed to load tasks.");
+      }
+    }
 
-        async function loadMarketTasks() {
-            const { data: tasks } = await _supabase.from('tasks').select('*');
-            const container = document.getElementById('task-list');
-            if (tasks && tasks.length > 0) {
-                container.innerHTML = tasks.map(t => `
-                    <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition duration-500">
-                        <div class="text-left">
-                            <div class="text-[11px] font-bold text-white tracking-tight">${t.task_name}</div>
-                            <div class="text-[9px] text-green-500 font-black">+${t.reward.toFixed(2)} WIR BOOST</div>
-                        </div>
-                        <button onclick="window.open('${t.link}', '_blank');" class="px-5 py-2 bg-white text-black text-[10px] font-black rounded-xl hover:bg-blue-500 hover:text-white transition">EARN</button>
-                    </div>
-                `).join('');
-            }
-        }
-    </script>
+    /***********************
+     * Withdraw button (合规提示)
+     ***********************/
+    function setupWithdraw() {
+      const btn = document.getElementById("withdraw-btn");
+      btn.addEventListener("click", () => {
+        alert(t().withdrawInfo);
+      });
+    }
+
+    /***********************
+     * Boot
+     ***********************/
+    (function boot() {
+      // language init
+      const saved = localStorage.getItem(LS_LANG_KEY) || "en";
+      document.getElementById("lang-select").value = saved;
+      applyLang(saved);
+
+      document.getElementById("lang-select").addEventListener("change", (e) => {
+        applyLang(e.target.value);
+      });
+
+      // bind init
+      document.getElementById("submit-btn").addEventListener("click", initNode);
+
+      // withdraw
+      setupWithdraw();
+
+      // auto resume session
+      const session = loadSession();
+      if (session?.token) {
+        showDashboard();
+        syncBalanceOnce().then(() => {
+          startCounterAnimation();
+          loadTasks();
+          setInterval(syncBalanceOnce, 8000);
+        });
+      } else {
+        showAuth();
+      }
+    })();
+  </script>
+
+  <!--
+    ===============================
+    ✅ 你需要配套的后端 API（必须）
+    ===============================
+    你可以用：Vercel / Cloudflare Workers / Supabase Edge Function / Node Express 等
+
+    1) POST /api/init-node
+       body: { email, tier, referrer_id }
+       returns: { token, node_id }
+
+    2) GET /api/balance
+       headers: Authorization: Bearer <token>
+       returns: { balance }
+
+    3) GET /api/tasks
+       headers: Authorization: Bearer <token> (可选)
+       returns: { tasks: [{ task_name, reward, link }] }
+
+    ⚠️ 不要再让前端直接写 Supabase 表。
+    ⚠️ RLS 也要开（即便你走后端）。
+  -->
 </body>
 </html>
