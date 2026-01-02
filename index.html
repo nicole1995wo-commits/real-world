@@ -10,31 +10,25 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #000; color: #fff; line-height: 1.8; margin: 0; overflow-x: hidden; }
         .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(50px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .grad-text { background: linear-gradient(180deg, #FFFFFF 30%, #555 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        /* 针对亚洲文字的防拥挤优化 */
-        .title-spacing { line-height: 1.4 !important; letter-spacing: 0.02em !important; padding: 0 1rem; }
-        .desc-spacing { line-height: 2 !important; opacity: 0.6; letter-spacing: 0.01em; }
-        
-        /* 极简下拉框样式 */
-        .custom-select { background-color: #000; border: 1px solid #222; border-radius: 12px; padding: 8px 16px; font-size: 12px; color: #888; cursor: pointer; outline: none; transition: 0.3s; }
+        .title-spacing { line-height: 1.5 !important; letter-spacing: 0.02em !important; padding: 0 1.5rem; transition: all 0.5s ease; }
+        .custom-select { background-color: #000; border: 1px solid #222; border-radius: 12px; padding: 10px 20px; font-size: 12px; color: #888; cursor: pointer; outline: none; }
         .custom-select:hover { border-color: #555; color: #fff; }
-        
-        /* 盈利动画 */
-        #profit-counter { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+        #profit-counter { font-variant-numeric: tabular-nums; }
+        .rtl { direction: rtl; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
     <nav class="w-full max-w-7xl p-8 flex justify-between items-center z-50">
         <div class="font-extrabold text-2xl tracking-tighter">REALPOWER</div>
-        <select onchange="setLang(this.value)" class="custom-select">
+        <select id="lang-select" onchange="setLang(this.value)" class="custom-select">
             <option value="en">English (Global)</option>
             <option value="zh">简体中文 (China)</option>
-            <option value="ar">العربية (Arabic)</option>
-            <option value="pt">Português (Brazil)</option>
-            <option value="es">Español (LatAm)</option>
-            <option value="fr">Français (Europe/Africa)</option>
-            <option value="de">Deutsch (Europe)</option>
             <option value="ru">Русский (Russia)</option>
+            <option value="ar">العربية (Middle East)</option>
+            <option value="es">Español (South America)</option>
+            <option value="pt">Português (Brazil)</option>
+            <option value="fr">Français (Africa/Europe)</option>
+            <option value="de">Deutsch (Europe)</option>
             <option value="jp">日本語 (Japan)</option>
             <option value="vn">Tiếng Việt (Vietnam)</option>
             <option value="mm">မြန်မာဘာသာ (Myanmar)</option>
@@ -43,47 +37,47 @@
         </select>
     </nav>
 
-    <main class="flex-1 flex flex-col items-center justify-center w-full max-w-5xl px-6 relative pb-20">
+    <main id="main-ui" class="flex-1 flex flex-col items-center justify-center w-full max-w-5xl px-6 relative pb-20 text-center">
         <div class="absolute w-[70vw] h-[70vw] max-w-[700px] bg-blue-500/5 rounded-full blur-[100px] -z-10"></div>
         
-        <div class="text-center mb-16">
-            <h1 id="t-title" class="text-5xl md:text-[88px] font-extrabold mb-10 grad-text title-spacing">Real World.<br>Real Compute.</h1>
-            <p id="t-desc" class="text-lg md:text-xl max-w-2xl mx-auto desc-spacing">Rent your idle hardware to the world's first decentralized AI protocol. Scale your earnings globally.</p>
+        <div class="mb-16">
+            <h1 id="t-title" class="text-4xl md:text-[85px] font-extrabold mb-10 grad-text title-spacing">Real World.<br>Real Compute.</h1>
+            <p id="t-desc" class="text-lg md:text-xl max-w-2xl mx-auto opacity-60">Rent your idle hardware to the world's first decentralized AI protocol. Real income, real impact.</p>
         </div>
 
-        <div class="glass p-10 md:p-16 rounded-[48px] w-full max-w-[520px] shadow-2xl transition-all duration-700">
+        <div class="glass p-10 md:p-16 rounded-[48px] w-full max-w-[520px] shadow-2xl mx-auto">
             <div id="join-form" class="space-y-8">
-                <div>
-                    <label id="l-email" class="text-[10px] text-zinc-500 font-black tracking-[0.2em] mb-3 block uppercase">Identity & Payout</label>
+                <div class="text-left">
+                    <label id="l-email" class="text-[10px] text-zinc-500 font-black tracking-[0.2em] mb-3 block uppercase text-left">Identity & Payout</label>
                     <input type="email" placeholder="access@protocol.io" class="w-full p-5 bg-black border border-zinc-900 rounded-2xl focus:border-zinc-400 outline-none transition text-white text-lg">
                 </div>
-                <div>
-                    <label id="l-node" class="text-[10px] text-zinc-500 font-black tracking-[0.2em] mb-3 block uppercase">Hardware Infrastructure</label>
+                <div class="text-left">
+                    <label id="l-node" class="text-[10px] text-zinc-500 font-black tracking-[0.2em] mb-3 block uppercase text-left">Hardware Tier</label>
                     <select class="w-full p-5 bg-black border border-zinc-900 rounded-2xl appearance-none outline-none focus:border-zinc-400 text-sm md:text-base cursor-pointer">
                         <option id="o-1" value="GPU">Tier 1: High-End GPU</option>
                         <option id="o-2" value="PC">Tier 2: Standard PC</option>
                         <option id="o-3" value="Mobile">Tier 3: Edge Node</option>
                     </select>
                 </div>
-                <button onclick="handleInit()" class="w-full py-6 bg-white text-black font-black rounded-2xl hover:bg-zinc-200 transition active:scale-95 text-xl shadow-xl shadow-white/5">
+                <button onclick="handleInit()" class="w-full py-6 bg-white text-black font-black rounded-2xl hover:bg-zinc-200 transition active:scale-95 text-xl">
                     <span id="t-btn">Initialize Protocol</span>
                 </button>
             </div>
 
-            <div id="dashboard" class="hidden text-center scale-up-animation">
-                <div class="text-green-500 text-[10px] font-black tracking-widest mb-4">● SYSTEM CONNECTED</div>
-                <h3 class="text-2xl font-extrabold mb-10 tracking-tight">Earning Real-time</h3>
+            <div id="dashboard" class="hidden text-center">
+                <div id="t-status" class="text-green-500 text-[10px] font-black tracking-widest mb-4 uppercase">● Status: Earning</div>
+                <h3 id="t-dash-title" class="text-2xl font-extrabold mb-10 tracking-tight text-white">Profit Generating...</h3>
                 <div class="bg-zinc-950 p-10 rounded-[32px] border border-zinc-900 mb-8">
-                    <div class="text-[10px] text-zinc-600 uppercase font-black tracking-widest mb-4">Revenue Generated</div>
-                    <div class="text-5xl font-bold text-white mb-2 tracking-tighter" id="profit-counter text-gradient">0.000000</div>
-                    <div class="text-[9px] text-zinc-700 tracking-[0.3em] font-black uppercase">WIR Assets</div>
+                    <div id="l-revenue" class="text-[10px] text-zinc-600 uppercase font-black tracking-widest mb-4">Total Revenue</div>
+                    <div class="text-5xl font-bold text-white mb-2 tracking-tighter" id="profit-counter">0.000000</div>
+                    <div class="text-[9px] text-zinc-700 tracking-[0.3em] font-black uppercase">WIR Tokens</div>
                 </div>
                 <p class="text-[11px] text-zinc-600 italic" id="t-dash-sub">Synchronizing with Genesis pool...</p>
             </div>
         </div>
     </main>
 
-    <footer class="w-full max-w-5xl py-12 border-t border-zinc-900/30 flex flex-wrap justify-center gap-16 md:gap-32">
+    <footer class="w-full max-w-5xl py-12 border-t border-zinc-900/30 flex flex-wrap justify-center gap-12 md:gap-32">
         <div class="text-center"><div class="text-2xl font-extrabold italic text-green-500">LIVE</div><div class="text-[9px] text-zinc-700 font-black uppercase tracking-widest mt-2">Network</div></div>
         <div class="text-center"><div class="text-2xl font-extrabold">1,248</div><div class="text-[9px] text-zinc-700 font-black uppercase tracking-widest mt-2">Nodes</div></div>
         <div class="text-center"><div class="text-2xl font-extrabold">82.4 PF</div><div class="text-[9px] text-zinc-700 font-black uppercase tracking-widest mt-2">Power</div></div>
@@ -91,17 +85,29 @@
 
     <script>
         const langs = {
-            en: { title: "Real World.<br>Real Compute.", desc: "Rent your idle hardware to the world's first decentralized AI protocol. Scale your earnings globally.", email: "Identity & Payout Email", node: "Hardware Infrastructure", btn: "Initialize Protocol", o1: "Tier 1: High-End GPU", o2: "Tier 2: Standard PC", o3: "Tier 3: Edge Node", dash: "Synchronizing with Genesis pool..." },
-            zh: { title: "真实世界。<br>真实算力。", desc: "加入全球首个去中心化 AI 算力协议。出租闲置硬件，实现全球化收益增长。", email: "身份认证与收款邮箱", node: "硬件基础设施等级", btn: "初始化协议", o1: "一级：高性能显卡 (RTX 系列)", o2: "二级：标准电脑 (CPU/笔记本)", o3: "三级：边缘节点 (手机/物联网)", dash: "正在与创世算力池同步..." },
-            ar: { title: "عالم حقيقي.<br>حساب حقيقي.", desc: "انضم إلى أقوى بنية تحتية للذكاء الاصطناعي اللامركزية. اربح القيمة الحقيقية.", email: "البريد الإلكتروني", node: "فئة الأجهزة", btn: "بدء البروتوكول", o1: "T1: GPU متطور", o2: "T2: كمبيوتر", o3: "T3: جهاز محمول", dash: "جاري المزامنة مع المجمع..." },
-            pt: { title: "Mundo Real.<br>Cálculo Real.", desc: "Alugue seu hardware ocioso para o primeiro protocolo de IA descentralizado. Ganhe valor real.", email: "E-mail de Pagamento", node: "Infraestrutura", btn: "Inicializar Protocolo", o1: "Nível 1: GPU de Ponta", o2: "Nível 2: PC Padrão", o3: "Nível 3: Nó Edge", dash: "Sincronizando com o pool..." },
-            mm: { title: "စစ်မှန်သောကမ္ဘာ။<br>စစ်မှန်သောတွက်ချက်မှု။", desc: "ကမ္ဘာ့အင်အားအကောင်းဆုံး AI အခြေခံအဆောက်အအုံတွင် ပါဝင်ပြီး ဝင်ငွေရှာပါ။", email: "အီးမေးလ်", node: "ဟာ့ဒ်ဝဲအဆင့်", btn: "စတင်ပါ", o1: "အဆင့် ၁: High-End GPU", o2: "အဆင့် ၂: ပုံမှန် PC", o3: "အဆင့် ၃: မိုဘိုင်းဖုန်း", dash: "တွက်ချက်နေသည်..." }
-            // 其他语言按此格式补充
+            en: { title: "Real World.<br>Real Compute.", desc: "Rent your idle hardware to the world's first decentralized AI protocol.", email: "Identity & Payout Email", node: "Hardware Tier", btn: "Initialize Protocol", o1: "Tier 1: High-End GPU", o2: "Tier 2: Standard PC", o3: "Tier 3: Edge Node", dashTitle: "Profit Generating...", revenue: "Total Revenue", dashSub: "Hashing on Genesis pool...", status: "● Status: Earning" },
+            zh: { title: "真实世界。<br>真实算力。", desc: "全球首个去中心化 AI 算力协议。出租硬件，实现收益增长。", email: "身份认证与收款邮箱", node: "硬件基础设施等级", btn: "初始化协议", o1: "一级：高性能显卡", o2: "二级：标准电脑", o3: "三级：边缘节点", dashTitle: "收益实时生成中...", revenue: "累计总收益", dashSub: "正在与创世算力池同步...", status: "● 状态：正在盈利" },
+            ru: { title: "Реальный мир.<br>Реальный расчет.", desc: "Сдавайте в аренду свое железо. Реальный доход.", email: "Email для выплат", node: "Уровень железа", btn: "Запустить", o1: "T1: Топовый GPU", o2: "T2: Стандартный ПК", o3: "T3: Мобильное устр.", dashTitle: "Генерация прибыли...", revenue: "Общий доход", dashSub: "Синхронизация с пулом...", status: "● СТАТУС: ДОХОД" },
+            ar: { title: "عالم حقيقي.<br>حساب حقيقي.", desc: "اربح القيمة الحقيقية من أجهزتك.", email: "البريد الإلكتروني", node: "فئة الأجهزة", btn: "بدء التشغيل", o1: "T1: GPU متطور", o2: "T2: كمبيوتر", o3: "T3: جهاز محمول", dashTitle: "جاري الربح...", revenue: "إجمالي الإيرادات", dashSub: "جاري المزامنة...", status: "● الحالة: كسب" },
+            es: { title: "Mundo Real.<br>Cómputo Real.", desc: "Alquila tu hardware al protocolo de IA. Ingresos reales.", email: "Correo de Identidad", node: "Nivel de Hardware", btn: "Inicializar", o1: "Nivel 1: GPU de Gama Alta", o2: "Nivel 2: PC Estándar", o3: "Nivel 3: Nodo Edge", dashTitle: "Generando ganancias...", revenue: "Ingresos Totales", dashSub: "Sincronizando con el pool...", status: "● ESTADO: GANANDO" },
+            pt: { title: "Mundo Real.<br>Cálculo Real.", desc: "Alugue seu hardware para o protocolo de IA. Ganhe valor real.", email: "E-mail de Pagamento", node: "Infraestrutura", btn: "Inicializar", o1: "Nível 1: GPU de Ponta", o2: "Nível 2: PC Padrão", o3: "Nível 3: Dispositivo Edge", dashTitle: "Gerando lucros...", revenue: "Receita Total", dashSub: "Sincronizando pool...", status: "● STATUS: LUCRANDO" },
+            vn: { title: "Thế giới thực.<br>Tính toán thực.", desc: "Cho thuê phần cứng để nhận giá trị thực.", email: "Email thanh toán", node: "Cấp độ phần cứng", btn: "Khởi tạo", o1: "Cấp 1: GPU cao cấp", o2: "Cấp 2: PC tiêu chuẩn", o3: "Cấp 3: Thiết bị Edge", dashTitle: "Đang tạo lợi nhuận...", revenue: "Tổng thu nhập", dashSub: "Đang đồng bộ...", status: "● TRẠNG THÁI: ĐANG KIẾM TIỀN" },
+            mm: { title: "စစ်မှန်သောကမ္ဘာ။<br>စစ်မှန်သောတွက်ချက်မှု။", desc: "သင့်ဟာ့ဒ်ဝဲကို ငှားပြီး ဝင်ငွေရှာပါ။", email: "အီးမေးလ်", node: "ဟာ့ဒ်ဝဲအဆင့်", btn: "စတင်ပါ", o1: "အဆင့် ၁: High-End GPU", o2: "အဆင့် ၂: ပုံမှန် PC", o3: "အဆင့် ၃: မိုဘိုင်းဖုန်း", dashTitle: "ဝင်ငွေရရှိနေသည်...", revenue: "စုစုပေါင်းဝင်ငွေ", dashSub: "တွက်ချက်နေသည်...", status: "● အခြေအနေ: ဝင်ငွေရနေသည်" },
+            kh: { title: "ពិភពពិត។<br>ការគណនាពិត។", desc: "ជួលផ្នែករឹងរបស់អ្នកដើម្បីរកប្រាក់ចំណូល។", email: "អ៊ីមែល", node: "កម្រិតផ្នែករឹង", btn: "ចាប់ផ្តើម", o1: "កម្រិត ១: GPU ខ្ពស់", o2: "កម្រិត ២: PC ធម្មតា", o3: "កម្រិត ៣: ឧបករណ៍ Edge", dashTitle: "កំពុងរកប្រាក់ចំណូល...", revenue: "ចំណូលសរុប", dashSub: "កំពុងភ្ជាប់...", status: "● ស្ថានភាព: កំពុងរកប្រាក់" },
+            la: { title: "ໂລກທີ່ແທ້ຈິງ.<br>ການຄິດໄລ່ທີ່ແທ້ຈິງ.", desc: "ໃຫ້ເຊົ່າຮາດແວຂອງທ່ານເພື່ອຫາລາຍໄດ້.", email: "ອີເມວ", node: "ລະດັບຮາດແວ", btn: "ເລີ່ມຕົ້ນ", o1: "ລະດັບ 1: GPU ສູງ", o2: "ລະດັບ 2: PC ທຳມະດາ", o3: "ລະດັບ 3: Edge Node", dashTitle: "ກຳລັງສ້າງລາຍໄດ້...", revenue: "ລາຍຮັບທັງໝົດ", dashSub: "ກຳລັງເຊື່ອມຕໍ່...", status: "● ສະຖານະ: ກຳລັງຫາເງິນ" },
+            fr: { title: "Monde Réel.<br>Calcul Réel.", desc: "Louez votre matériel. Revenus réels.", email: "Email d'identité", node: "Matériel", btn: "Initialiser", o1: "T1: GPU Haut de Gamme", o2: "T2: PC Standard", o3: "T3: Nœud Edge", dashTitle: "Génération de profits...", revenue: "Revenu Total", dashSub: "Synchronisation...", status: "● STATUT: EN GAIN" },
+            de: { title: "Echte Welt.<br>Echte Berechnung.", desc: "Hardware vermieten. Echte Erträge.", email: "Identitäts-E-Mail", node: "Stufe", btn: "Initialisieren", o1: "Tier 1: High-End-GPU", o2: "Tier 2: Standard-PC", o3: "Tier 3: Edge-Node", dashTitle: "Gewinn wird generiert...", revenue: "Gesamtumsatz", dashSub: "Synchronisierung...", status: "● STATUS: VERDIENEND" },
+            jp: { title: "現実世界。<br>リアル計算。", desc: "アイドル計算を共有して報酬を得る。", email: "認証用メール", node: "ハードウェア層", btn: "ノード初期化", o1: "ティア1：高性能GPU", o2: "ティア2：標準PC", o3: "ティア3：エッジノード", dashTitle: "収益発生中...", revenue: "総収益", dashSub: "同期中...", status: "● ステータス：稼働中" }
         };
 
         let profit = 0;
         function setLang(l) {
             const t = langs[l] || langs.en;
+            const main = document.getElementById('main-ui');
+            
+            // 阿拉伯语 RTL 支持
+            if (l === 'ar') main.classList.add('rtl'); else main.classList.remove('rtl');
+
             document.getElementById('t-title').innerHTML = t.title;
             document.getElementById('t-desc').innerText = t.desc;
             document.getElementById('l-email').innerText = t.email;
@@ -110,7 +116,10 @@
             document.getElementById('o-1').innerText = t.o1;
             document.getElementById('o-2').innerText = t.o2;
             document.getElementById('o-3').innerText = t.o3;
-            document.getElementById('t-dash-sub').innerText = t.dash;
+            document.getElementById('t-dash-title').innerText = t.dashTitle;
+            document.getElementById('l-revenue').innerText = t.revenue;
+            document.getElementById('t-dash-sub').innerText = t.dashSub;
+            document.getElementById('t-status').innerText = t.status;
         }
 
         function handleInit() {
